@@ -9,9 +9,9 @@
 
 
 
-<html class="theme-next pisces use-motion" lang="en">
+<html class="theme-next mist use-motion" lang="en">
 <head>
-  <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="UTF-8"/>
+  <meta charset="UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
 <meta name="theme-color" content="#222">
@@ -94,7 +94,7 @@
   
     
     
-    <link href="//fonts.googleapis.com/css?family=Comic Sans Ms:300,300italic,400,400italic,700,700italic|华文新魏:300,300italic,400,400italic,700,700italic|Comic Sans Ms, '华文楷体':300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|PT Mono:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+    <link href="//fonts.googleapis.com/css?family=Comic Sans Ms:300,300italic,400,400italic,700,700italic|Comic Sans Ms, '华文新魏':300,300italic,400,400italic,700,700italic|Comic Sans Ms, '华文楷体':300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|PT Mono:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
   
 
 
@@ -122,7 +122,7 @@
 
 
 
-  <meta name="keywords" content="math," />
+  <meta name="keywords" content="MA-Application," />
 
 
 
@@ -133,17 +133,17 @@
 
 
 
-<meta name="description" content="木板最优切割方案 目标: 木板利用率最高 关键词: 0-1规划、三块递归排样、分支定界法  0-1规划模型决策变量： 木板是否排放约束： 产品数量约束、排样规则约束 分支定界法设有最大化的整数规划问题A，与它相应的线性规划为问题B，从解问题B开始，若其最优解不满足整数约束，则其最优函数值必是问题A的最优函数值$z^{*}$的上界, 记为$\overline{z}$; 而A的任意可行解对应的目标函数">
+<meta name="description" content="Preface本文记录了我本科期间参加数学建模竞赛的经历：五一建模竞赛、电工杯建模竞赛和国赛。撰写本文是为了复习即将到来的保研面试，因此主要回顾的是参赛过程中用到的模型和解题思路。">
 <meta property="og:type" content="article">
-<meta property="og:title" content="mathModeling">
+<meta property="og:title" content="Math Modeling">
 <meta property="og:url" content="http://escapetiger.github.io/2020/07/06/mathModeling/index.html">
 <meta property="og:site_name" content="Cai Yi&#39;s BLOG">
-<meta property="og:description" content="木板最优切割方案 目标: 木板利用率最高 关键词: 0-1规划、三块递归排样、分支定界法  0-1规划模型决策变量： 木板是否排放约束： 产品数量约束、排样规则约束 分支定界法设有最大化的整数规划问题A，与它相应的线性规划为问题B，从解问题B开始，若其最优解不满足整数约束，则其最优函数值必是问题A的最优函数值$z^{*}$的上界, 记为$\overline{z}$; 而A的任意可行解对应的目标函数">
+<meta property="og:description" content="Preface本文记录了我本科期间参加数学建模竞赛的经历：五一建模竞赛、电工杯建模竞赛和国赛。撰写本文是为了复习即将到来的保研面试，因此主要回顾的是参赛过程中用到的模型和解题思路。">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2020-07-06T14:14:12.000Z">
-<meta property="article:modified_time" content="2020-07-08T13:19:16.658Z">
+<meta property="article:modified_time" content="2020-10-21T10:27:22.803Z">
 <meta property="article:author" content="CAI YI">
-<meta property="article:tag" content="math">
+<meta property="article:tag" content="MA-Application">
 <meta name="twitter:card" content="summary">
 
 
@@ -152,7 +152,7 @@
   var NexT = window.NexT || {};
   var CONFIG = {
     root: '/',
-    scheme: 'Pisces',
+    scheme: 'Mist',
     version: '5.1.4',
     sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
     fancybox: true,
@@ -180,7 +180,7 @@
 
 
 
-  <title>mathModeling | Cai Yi's BLOG</title>
+  <title>Math Modeling | Cai Yi's BLOG</title>
   
 
 
@@ -191,7 +191,7 @@
 
 
 
-<meta name="generator" content="Hexo 4.2.1"><!-- hexo-inject:begin --><!-- hexo-inject:end --></head>
+<meta name="generator" content="Hexo 4.2.1"></head>
 
 <body itemscope itemtype="http://schema.org/WebPage" lang="en">
 
@@ -200,7 +200,7 @@
     
   
 
-  <!-- hexo-inject:begin --><!-- hexo-inject:end --><div class="container sidebar-position-left page-post-detail">
+  <div class="container sidebar-position-left page-post-detail">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
@@ -323,7 +323,7 @@
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="CAI YI">
       <meta itemprop="description" content="">
-      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="image" content="/images/avatar1.png">
     </span>
 
     <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
@@ -335,7 +335,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">mathModeling</h1>
+          <h1 class="post-title" itemprop="name headline">Math Modeling</h1>
         
 
         <div class="post-meta">
@@ -377,11 +377,32 @@
 
                 
                 
+                  , 
+                
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Study/Math/" itemprop="url" rel="index">
+                    <span itemprop="name">Math</span>
+                  </a>
+                </span>
+
+                
+                
               
             </span>
           
 
           
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2020/07/06/mathModeling/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count gitment-comments-count" data-xid="/2020/07/06/mathModeling/" itemprop="commentsCount"></span>
+                </a>
+              </span>
             
           
 
@@ -390,6 +411,25 @@
 
           
 
+          
+            <div class="post-wordcount">
+              
+                
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-file-word-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Words count in article&#58;</span>
+                
+                <span title="Words count in article">
+                  670
+                </span>
+              
+
+              
+
+              
+            </div>
           
 
           
@@ -407,15 +447,17 @@
       
 
       
-        <h1 id="木板最优切割方案"><a href="#木板最优切割方案" class="headerlink" title="木板最优切割方案"></a>木板最优切割方案</h1><ul>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/hint.css/2.4.1/hint.min.css"><h1 id="Preface"><a href="#Preface" class="headerlink" title="Preface"></a>Preface</h1><p>本文记录了我本科期间参加数学建模竞赛的经历：五一建模竞赛、电工杯建模竞赛和国赛。撰写本文是为了复习即将到来的保研面试，因此主要回顾的是参赛过程中用到的模型和解题思路。</p>
+<hr>
+<a id="more"></a>
+<h1 id="五一：木板最优切割方案"><a href="#五一：木板最优切割方案" class="headerlink" title="五一：木板最优切割方案"></a>五一：木板最优切割方案</h1><ul>
 <li><strong>目标:</strong> 木板利用率最高</li>
 <li><strong>关键词:</strong> 0-1规划、三块递归排样、分支定界法</li>
 </ul>
 <h2 id="0-1规划模型"><a href="#0-1规划模型" class="headerlink" title="0-1规划模型"></a>0-1规划模型</h2><p><strong>决策变量：</strong> 木板是否排放<br><strong>约束：</strong> 产品数量约束、排样规则约束</p>
 <h2 id="分支定界法"><a href="#分支定界法" class="headerlink" title="分支定界法"></a>分支定界法</h2><p>设有最大化的整数规划问题A，与它相应的线性规划为问题B，从解问题B开始，若其最优解不满足整数约束，则其最优函数值必是问题A的最优函数值$z^{*}$的上界, 记为$\overline{z}$; 而A的任意可行解对应的目标函数值是$z^{*}$的下界, 记为$\underline{z}$.<br>分支定界法，就是通过划分B的可行域的方法逐渐减小$\overline{z}$和增大$\underline{z}$，最终求得$z^*$.</p>
-<a id="more"></a>
 <hr>
-<h1 id="露天停车场停车位的优化设计"><a href="#露天停车场停车位的优化设计" class="headerlink" title="露天停车场停车位的优化设计"></a>露天停车场停车位的优化设计</h1><ul>
+<h1 id="电工杯：露天停车场停车位的优化设计"><a href="#电工杯：露天停车场停车位的优化设计" class="headerlink" title="电工杯：露天停车场停车位的优化设计"></a>电工杯：露天停车场停车位的优化设计</h1><ul>
 <li><strong>目标:</strong> 停车场停车位数最大化</li>
 <li><strong>关键词:</strong> 非线性规划、贪心算法</li>
 </ul>
@@ -423,7 +465,7 @@
 <h2 id="非线性规划模型"><a href="#非线性规划模型" class="headerlink" title="非线性规划模型"></a>非线性规划模型</h2><p><strong>决策变量：</strong> 停车位倾角$\theta$<br><strong>约束：</strong> 几何约束、边界约束<br><strong>贪心策略：</strong> 停车带长度最大化、通道宽度最小化</p>
 <h2 id="不规则停车场规划"><a href="#不规则停车场规划" class="headerlink" title="不规则停车场规划"></a>不规则停车场规划</h2><p>面对不规则的停车场，解决思路是切割为若干个规则的形状，再应用上述模型。</p>
 <hr>
-<h1 id="机场的出租车问题"><a href="#机场的出租车问题" class="headerlink" title="机场的出租车问题"></a>机场的出租车问题</h1><ul>
+<h1 id="国赛：机场的出租车问题"><a href="#国赛：机场的出租车问题" class="headerlink" title="国赛：机场的出租车问题"></a>国赛：机场的出租车问题</h1><ul>
 <li><strong>目标:</strong> 司机收益模型、乘车效率最优化</li>
 <li><strong>关键词:</strong> 计算机模拟、综合评价模型</li>
 </ul>
@@ -447,7 +489,7 @@
       
         <div class="post-tags">
           
-            <a href="/tags/math/" rel="tag"># math</a>
+            <a href="/tags/MA-Application/" rel="tag"><i class="fa fa-tag"></i> MA-Application</a>
           
         </div>
       
@@ -498,6 +540,13 @@
           
 
   
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
 
 
 
@@ -534,6 +583,10 @@
         <div class="site-overview">
           <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
             
+              <img class="site-author-image" itemprop="image"
+                src="/images/avatar1.png"
+                alt="CAI YI" />
+            
               <p class="site-author-name" itemprop="name">CAI YI</p>
               <p class="site-description motion-element" itemprop="description">Welcome to my home!</p>
           </div>
@@ -545,7 +598,7 @@
               
                 <a href="/archives/%7C%7C%20archive">
               
-                  <span class="site-state-item-count">4</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
@@ -556,7 +609,7 @@
               
               <div class="site-state-item site-state-categories">
                 <a href="/categories/index.html">
-                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-count">4</span>
                   <span class="site-state-item-name">categories</span>
                 </a>
               </div>
@@ -567,7 +620,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-count">6</span>
                   <span class="site-state-item-name">tags</span>
                 </a>
               </div>
@@ -577,6 +630,22 @@
 
           
 
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/escapetiger" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="cy992236@outlook.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
           
 
           
@@ -600,7 +669,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#木板最优切割方案"><span class="nav-number">1.</span> <span class="nav-text">木板最优切割方案</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-1规划模型"><span class="nav-number">1.1.</span> <span class="nav-text">0-1规划模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分支定界法"><span class="nav-number">1.2.</span> <span class="nav-text">分支定界法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#露天停车场停车位的优化设计"><span class="nav-number">2.</span> <span class="nav-text">露天停车场停车位的优化设计</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#汽车转弯轨迹"><span class="nav-number">2.1.</span> <span class="nav-text">汽车转弯轨迹</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#非线性规划模型"><span class="nav-number">2.2.</span> <span class="nav-text">非线性规划模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#不规则停车场规划"><span class="nav-number">2.3.</span> <span class="nav-text">不规则停车场规划</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#机场的出租车问题"><span class="nav-number">3.</span> <span class="nav-text">机场的出租车问题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#司机选择决策模型"><span class="nav-number">3.1.</span> <span class="nav-text">司机选择决策模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#模型的合理性和依赖因素分析"><span class="nav-number">3.2.</span> <span class="nav-text">模型的合理性和依赖因素分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#上车点规划"><span class="nav-number">3.3.</span> <span class="nav-text">上车点规划</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Preface"><span class="nav-number">1.</span> <span class="nav-text">Preface</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#五一：木板最优切割方案"><span class="nav-number">2.</span> <span class="nav-text">五一：木板最优切割方案</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-1规划模型"><span class="nav-number">2.1.</span> <span class="nav-text">0-1规划模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#分支定界法"><span class="nav-number">2.2.</span> <span class="nav-text">分支定界法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#电工杯：露天停车场停车位的优化设计"><span class="nav-number">3.</span> <span class="nav-text">电工杯：露天停车场停车位的优化设计</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#汽车转弯轨迹"><span class="nav-number">3.1.</span> <span class="nav-text">汽车转弯轨迹</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#非线性规划模型"><span class="nav-number">3.2.</span> <span class="nav-text">非线性规划模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#不规则停车场规划"><span class="nav-number">3.3.</span> <span class="nav-text">不规则停车场规划</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#国赛：机场的出租车问题"><span class="nav-number">4.</span> <span class="nav-text">国赛：机场的出租车问题</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#司机选择决策模型"><span class="nav-number">4.1.</span> <span class="nav-text">司机选择决策模型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#模型的合理性和依赖因素分析"><span class="nav-number">4.2.</span> <span class="nav-text">模型的合理性和依赖因素分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#上车点规划"><span class="nav-number">4.3.</span> <span class="nav-text">上车点规划</span></a></li></ol></li></ol></div>
             
 
           </div>
@@ -627,6 +696,44 @@
   <span class="author" itemprop="copyrightHolder">CAI YI</span>
 
   
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-area-chart"></i>
+    </span>
+    
+      <span class="post-meta-item-text">Site words total count&#58;</span>
+      
+    
+    <span title="Site words total count">5.4k</span>
+  
+</div>
+
+<div id="days" class='copyright'>
+<script>
+function show_date_time(){
+    window.setTimeout("show_date_time()", 1000);
+    BirthDay=new Date("07/04/2020 00:00:00");//修改为自己的blog建站时间
+    today=new Date();
+    timeold=(today.getTime()-BirthDay.getTime());
+    sectimeold=timeold/1000
+    secondsold=Math.floor(sectimeold);
+    msPerDay=24*60*60*1000
+    e_daysold=timeold/msPerDay
+    daysold=Math.floor(e_daysold);
+    e_hrsold=(e_daysold-daysold)*24;
+    hrsold=setzero(Math.floor(e_hrsold));
+    e_minsold=(e_hrsold-hrsold)*60;
+    minsold=setzero(Math.floor((e_hrsold-hrsold)*60));
+    seconds=setzero(Math.floor((e_minsold-minsold)*60));
+    document.getElementById('days').innerHTML="This Website has been running for "+daysold+" days, "+hrsold+" hours, "+minsold+" minutes, "+seconds+" seconds.";
+}
+function setzero(i){
+    if (i<10)
+    {i="0" + i};
+    return i;
+}
+show_date_time();
+</script>
 </div>
 
 
@@ -638,7 +745,7 @@
 
 
 
-  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Pisces</a> v5.1.4</div>
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
 
 
 
@@ -665,9 +772,7 @@
     
 
   </div>
-  
-    <script type="text/javascript" color="138,43,226" opacity='0.8' zIndex="-2" count="50" src="//cdn.bootcss.com/canvas-nest.js/1.0.0/canvas-nest.min.js"></script>
-  
+
 
   
 
@@ -748,13 +853,6 @@
   
   
 
-
-  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
-
-  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
-
-
-
   
   <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
 <script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
@@ -799,6 +897,28 @@
 
 
 
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//unpkg.com/valine/dist/Valine.min.js"></script>
+  
+  <script type="text/javascript">
+    var GUEST = ['nick','mail','link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item=>{
+      return GUEST.indexOf(item)>-1;
+    });
+    new Valine({
+        el: '#comments' ,
+        verify: false,
+        notify: false,
+        appId: 'jhciLgFkKtFzpsnuvIjqoDCz-gzGzoHsz',
+        appKey: 'jRj1IlcMUJBqNjr5MUjTgzop',
+        placeholder: 'Just go go',
+        avatar:'/uploads/japan.png',
+        guest_info:guest,
+        pageSize:'10' || 10,
+    });
+  </script>
+
 
 
   
@@ -836,7 +956,7 @@
         }
       });
     </script>
-    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- hexo-inject:end -->
+    <script type="text/javascript" src="//cdn.bootcss.com/mathjax/2.7.1/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
   
 
 
