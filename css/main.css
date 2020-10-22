@@ -1822,7 +1822,7 @@ pre .javascript .function {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #34ecff;
+  background: #de88ff;
 }
 .links-of-blogroll {
   font-size: 13px;
@@ -2820,7 +2820,7 @@ hr {
 .posts-expand .post-tags a {
   padding: 1px 5px;
   background: #f5f5f5;
-  border-bottom: none;
+/*border-bottom: none;*/
 }
 .posts-expand .post-tags a:hover {
   background: #ccc;
@@ -3033,22 +3033,48 @@ body i:hover {
   background-color: rgba(63,64,120,0.3);
 }
 .post-title {
-  color: #000;
+  color: #fffdd0;
   letter-spacing: 8px;
   font-family: Comic Sans MS;
   text-shadow: -1px -1px 1px #fff, 1px 1px 1px #000;
 }
-.posts-expand .post-tags a {
+.post-title-link:hover {
+  color: #fffdd0;
+}
+.post-button {
+  text-align: center;
+}
+.post-button p,
+.post-button span,
+.post-button a,
+.post-button i {
+  color: rgba(240,248,255,0.7);
+}
+.post-button a:hover {
+  color: #fffdd0;
+}
+.post-button i:hover {
+  color: #fffdd0;
+}
+.post-button a {
+  background-color: rgba(26,35,66,0.7);
+  padding: 6px;
+  margin: 2px;
+  border-radius: 12px;
+  -webkit-box-shadow: 0 0 5px #003153;
+  -moz-box-shadow: 0 0 5px rgba(202,203,204,0.5);
+}
+.post-tags p,
+.post-tags span,
+.post-tags i {
+  color: rgba(26,35,66,0.7);
+}
+.post-tags a {
+  color: rgba(26,35,66,0.7);
   border-style: solid;
   border-width: 2px;
   border-color: #fffdd0;
   background-color: rgba(247,232,239,0.9);
-}
-.post-tags p,
-.post-tags span,
-.post-tags a,
-.post-tags i {
-  color: rgba(26,35,66,0.7);
 }
 .post-tags a:hover {
   color: #fffdd0;
@@ -3062,5 +3088,8 @@ body i:hover {
   color: rgba(247,232,239,0.9);
 }
 .post-nav a:hover {
+  color: #fffdd0;
+}
+.post-nav i:hover {
   color: #fffdd0;
 }
