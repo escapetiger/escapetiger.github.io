@@ -283,3 +283,15 @@ details, summary{
     line-height: 1.75;
   }
 }
+
+/* Link hover: academic blue */
+a{
+  color: inherit;
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+a:hover{
+  color: #1f6feb;              /* academic blue */
+  text-decoration-color: #1f6feb;
+}

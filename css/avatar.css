@@ -6,7 +6,6 @@
   to   { transform: rotate(360deg); }
 }
 
-/* 基础状态 */
 .profile .profile_inner img,
 .profile img {
   transition: transform 0.4s ease;
@@ -14,7 +13,6 @@
   will-change: transform;
 }
 
-/* Hover：开始持续旋转 */
 .profile .profile_inner img:hover,
 .profile img:hover {
   animation: avatar-spin-hover 2.8s linear infinite;

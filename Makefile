@@ -14,6 +14,13 @@
 ROOT_DIR = $(PWD)
 BUILD_DIR = $(ROOT_DIR)/build
 
+.PHONY: deploy
+deploy:
+	@hugo --minify
+	@cd public
+	@make git-save
+	@cd ..
+
 
 #=======================================================================
 # GIT prompts 
