@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>V on Yi Cai</title>
+    <link>http://localhost:1313/tags/v/</link>
+    <description>Recent content in V on Yi Cai</description>
+    <generator>Hugo -- 0.154.5</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 20 Oct 2020 11:52:27 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/tags/v/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>VM Installation</title>
+      <link>http://localhost:1313/posts/vm_guide/</link>
+      <pubDate>Tue, 20 Oct 2020 11:52:27 +0000</pubDate>
+      <guid>http://localhost:1313/posts/vm_guide/</guid>
+      <description>&lt;p&gt;This posts is devote to the installation of virtual machine.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>
