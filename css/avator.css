@@ -1,0 +1,11 @@
+/***********************
+ * Avatar slow rotation
+ ***********************/
+@keyframes avatar-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.profile-img {
+  animation: avatar-spin 40s linear infinite;
+}

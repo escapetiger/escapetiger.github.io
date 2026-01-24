@@ -1,0 +1,285 @@
+/***********************
+ * 0) Font tokens
+ ***********************/
+:root{
+  /* Body text: English + Chinese serif */
+  --font-body:
+    "Crimson Pro",
+    "Noto Serif SC",
+    ui-serif,
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  /* Headings: same family (academic) */
+  --font-heading:
+    "Crimson Pro",
+    "Noto Serif SC",
+    ui-serif,
+    Georgia,
+    serif;
+
+  /* UI / navigation: English sans + Chinese sans */
+  --font-ui:
+    "Source Sans 3",
+    "Noto Sans SC",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  /* Code */
+  --font-mono:
+    "JetBrains Mono",
+    "Noto Sans Mono CJK SC",
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+
+  /* Signature */
+  --font-author:
+    "Agbalumo",
+    "Noto Serif SC",
+    ui-serif,
+    Georgia,
+    serif;
+
+  /* Optional fine tuning */
+  --body-size: 1.06rem;
+  --body-line: 1.78;
+  --ui-size: 0.98rem;
+  --ui-line: 1.45;
+
+  --heading-letter: -0.01em;
+  --ui-letter: 0.01em;
+}
+
+/***********************
+ * 1) Global text rendering
+ ***********************/
+html{
+  font-size: 16px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body{
+  font-family: var(--font-body) !important;
+  font-size: var(--body-size);
+  line-height: var(--body-line);
+}
+
+/***********************
+ * 2) Headings (all levels)
+ ***********************/
+h1,h2,h3,h4,h5,h6{
+  font-family: var(--font-heading) !important;
+  letter-spacing: var(--heading-letter);
+  font-weight: 600;
+}
+
+.post-title,
+.page-header h1,
+.profile .profile_inner h1,
+.profile .profile_inner h2,
+.logo{
+  font-family: var(--font-author) !important;
+  letter-spacing: var(--heading-letter);
+  font-weight: 600;
+}
+
+/***********************
+ * 3) UI / navigation / menus / buttons
+ ***********************/
+header, nav, .nav, .menu, .menu a,
+.breadcrumbs, .breadcrumbs a,
+.pagination, .pagination a,
+.toc, .toc a,
+button, .btn, .button, input, select, textarea{
+  font-family: var(--font-ui) !important;
+  font-size: var(--ui-size);
+  line-height: var(--ui-line);
+  letter-spacing: var(--ui-letter);
+}
+
+.profile .profile_inner p,
+.profile .profile_inner .buttons a{
+  font-family: var(--font-ui) !important;
+  letter-spacing: var(--ui-letter);
+}
+
+/***********************
+ * 4) Post content typography (paragraphs, lists, quotes)
+ ***********************/
+.post-content,
+.post-content p,
+.post-content li,
+.post-content ul,
+.post-content ol{
+  font-family: var(--font-body) !important;
+}
+
+.post-content p{
+  margin: 0.9em 0;
+}
+
+.post-content blockquote,
+blockquote{
+  font-family: var(--font-body) !important;
+  font-style: italic;
+}
+
+.post-content strong{
+  font-weight: 650;
+}
+
+/***********************
+ * 5) Links (keep font consistent)
+ ***********************/
+a, a:visited, a:hover{
+  font-family: inherit;
+}
+
+/***********************
+ * 6) Code: inline + blocks
+ ***********************/
+pre, code, kbd, samp,
+.highlight pre, .highlight code,
+.post-content pre, .post-content code{
+  font-family: var(--font-mono) !important;
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+
+/* Inline code should look a bit more “designed” */
+.post-content :not(pre) > code{
+  font-size: 0.92em;
+}
+
+/***********************
+ * 7) Tables
+ ***********************/
+table,
+thead, tbody, tfoot, tr, th, td{
+  font-family: var(--font-ui) !important;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
+/***********************
+ * 8) Meta info: date, tags, reading time, author, footer
+ ***********************/
+.post-meta,
+.post-meta a,
+.entry-footer,
+.entry-footer a,
+footer, .footer,
+.terms-tags a,
+.share-buttons,
+.author-box, .author-box *{
+  font-family: var(--font-ui) !important;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  letter-spacing: var(--ui-letter);
+}
+
+/***********************
+ * 9) TOC (Table of contents)
+ ***********************/
+.toc,
+.toc details,
+.toc summary,
+.toc ul, .toc li, .toc a{
+  font-family: var(--font-ui) !important;
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+/***********************
+ * 10) Search page (PaperMod search)
+ ***********************/
+#searchInput,
+#searchResults,
+#searchResults *{
+  font-family: var(--font-ui) !important;
+}
+
+/***********************
+ * 11) Taxonomy pages (tags/categories lists)
+ ***********************/
+.terms-tags,
+.terms-tags a,
+.tag-entry,
+.tag-entry *{
+  font-family: var(--font-ui) !important;
+}
+
+/***********************
+ * 12) Footnotes & captions
+ ***********************/
+.footnotes,
+.footnotes *{
+  font-family: var(--font-ui) !important;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+figcaption, .post-content figcaption{
+  font-family: var(--font-ui) !important;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  opacity: 0.9;
+}
+
+/***********************
+ * 13) Math (KaTeX + MathJax)
+ ***********************/
+/* KaTeX */
+.katex{
+  font-size: 1.02em;
+}
+
+/* KaTeX block */
+.katex-display{
+  margin: 1.2em 0;
+}
+
+/* MathJax v3 containers */
+mjx-container{
+  font-size: 1.02em !important;
+}
+
+/***********************
+ * 14) ProfileMode buttons (home)
+ ***********************/
+.profile .buttons a,
+.profileMode .buttons a{
+  font-family: var(--font-ui) !important;
+  font-size: 0.98rem;
+  letter-spacing: 0.02em;
+}
+
+/***********************
+ * 15) Small elements sometimes missed
+ ***********************/
+sup, sub, small,
+mark, .tag, .badge,
+details, summary{
+  font-family: inherit;
+}
+
+/***********************
+ * 16) Mobile readability tweak
+ ***********************/
+@media (max-width: 768px){
+  :root{
+    --body-size: 1.04rem;
+  }
+  .post-content{
+    line-height: 1.75;
+  }
+}
