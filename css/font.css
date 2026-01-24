@@ -4,7 +4,7 @@
 :root{
   /* Body text: English + Chinese serif */
   --font-body:
-    "Crimson Pro",
+    "Ubuntu",
     "Noto Serif SC",
     ui-serif,
     Georgia,
@@ -13,7 +13,7 @@
 
   /* Headings: same family (academic) */
   --font-heading:
-    "Crimson Pro",
+    "Ubuntu",
     "Noto Serif SC",
     ui-serif,
     Georgia,
@@ -21,7 +21,7 @@
 
   /* UI / navigation: English sans + Chinese sans */
   --font-ui:
-    "Source Sans 3",
+    "Ubuntu",
     "Noto Sans SC",
     system-ui,
     -apple-system,
