@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Blog on Yi Cai</title>
+    <link>http://localhost:1313/en/blog/2022/</link>
+    <description>Recent content in Blog on Yi Cai</description>
+    <generator>Hugo -- 0.154.5</generator>
+    <language>en-us</language>
+    <lastBuildDate>Mon, 28 Feb 2022 06:03:40 +0000</lastBuildDate>
+    <atom:link href="http://localhost:1313/en/blog/2022/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Latex on ubuntu</title>
+      <link>http://localhost:1313/en/blog/2022/latex_setup/</link>
+      <pubDate>Mon, 28 Feb 2022 06:03:40 +0000</pubDate>
+      <guid>http://localhost:1313/en/blog/2022/latex_setup/</guid>
+      <description>&lt;h2 id=&#34;texlive-on-ubuntu&#34;&gt;Texlive on ubuntu&lt;/h2&gt;
+&lt;p&gt;For installation, just run&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;sudo apt-get install texlive-full
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id=&#34;latexmk&#34;&gt;latexmk&lt;/h3&gt;
+&lt;p&gt;&lt;a href=&#34;https://personal.psu.edu/~jcc8/software/latexmk/&#34;&gt;Latexmk&lt;/a&gt; is a &lt;a href=&#34;https://www.perl.org/&#34;&gt;Perl&lt;/a&gt; script which you just have to run once and it does everything else for you.&lt;/p&gt;
+&lt;p&gt;Compile all &lt;code&gt;.tex&lt;/code&gt; files in the current directory using the output format specified by the configuration files.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;latexmk
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;If you want to make sure to get a &lt;code&gt;.pdf&lt;/code&gt;&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-shell&#34; data-lang=&#34;shell&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;latexmk -pdf
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;If you want to preview the resulting output file, just use&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

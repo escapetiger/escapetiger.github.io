@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>WSL2 on Yi Cai</title><link>https://escapetiger.github.io/en/tags/wsl2/</link><description>Recent content in WSL2 on Yi Cai</description><generator>Hugo -- 0.154.5</generator><language>en-us</language><lastBuildDate>Wed, 26 Jan 2022 13:26:00 +0000</lastBuildDate><atom:link href="https://escapetiger.github.io/en/tags/wsl2/index.xml" rel="self" type="application/rss+xml"/><item><title>WSL2 Setup</title><link>https://escapetiger.github.io/en/blog/2022/wsl2/</link><pubDate>Wed, 26 Jan 2022 13:26:00 +0000</pubDate><guid>https://escapetiger.github.io/en/blog/2022/wsl2/</guid><description>&lt;h2 id="wsl2--wslg"&gt;WSL2 + WSLG&lt;/h2&gt;
+&lt;p&gt;For installation of WSL2 and WSLG, please see &lt;a href="https://docs.microsoft.com/en-us/windows/wsl/install"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="windows-terminal"&gt;Windows terminal&lt;/h2&gt;
+&lt;p&gt;My customized theme for windows terminal are listed as below:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"&gt;&lt;code class="language-json" data-lang="json"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;colorScheme&amp;#34;&lt;/span&gt;&lt;span style="color:#960050;background-color:#1e0010"&gt;:&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;One Half Dark&amp;#34;&lt;/span&gt;&lt;span style="color:#960050;background-color:#1e0010"&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;useAcrylic&amp;#34;&lt;/span&gt;&lt;span style="color:#960050;background-color:#1e0010"&gt;:&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;&lt;span style="color:#960050;background-color:#1e0010"&gt;,&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#e6db74"&gt;&amp;#34;acrylicOpacity&amp;#34;&lt;/span&gt;&lt;span style="color:#960050;background-color:#1e0010"&gt;:&lt;/span&gt; &lt;span style="color:#ae81ff"&gt;0.8&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;To solver green highlight color for &lt;code&gt;ls&lt;/code&gt; command, see &lt;a href="https://askubuntu.com/questions/1232870/changing-ls-highlight-colors-in-windows-terminal-with-wsl"&gt;here&lt;/a&gt;.&lt;/p&gt;
+&lt;h2 id="oh-my-zsh"&gt;Oh my zsh&lt;/h2&gt;
+&lt;p&gt;For detail, see &lt;a href="https://blog.joaograssi.com/windows-subsystem-for-linux-with-oh-my-zsh-conemu/"&gt;Installation for Oh My Zsh&lt;/a&gt;.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;When running Netch, the error message is&lt;/li&gt;
+&lt;/ul&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|0.0.0.0|:443&amp;hellip; failed: Connection refused.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;In this case, the solution is to manually install &lt;code&gt;install.sh&lt;/code&gt; file and run &lt;code&gt;sh install.sh&lt;/code&gt; in command line.&lt;/p&gt;</description></item></channel></rss>

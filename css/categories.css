@@ -1,0 +1,100 @@
+/***********************
+ * Categories as folders (accordion)
+ ***********************/
+.cat-folders{
+  display: grid;
+  gap: 12px;
+}
+
+.cat-folder{
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, currentColor 3%, transparent);
+  overflow: hidden;
+}
+
+.cat-folder__summary{
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.cat-folder__summary::-webkit-details-marker{ display:none; }
+
+.cat-folder__icon{ display:inline-flex; opacity:0.9; }
+
+.cat-folder__name{
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
+.cat-folder__count{
+  margin-left: auto;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  opacity: 0.75;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.cat-folder__chev{
+  font-family: var(--font-ui);
+  opacity: 0.7;
+  transition: transform 0.18s ease;
+}
+.cat-folder[open] .cat-folder__chev{ transform: rotate(180deg); }
+
+.cat-folder__list{ margin:0; padding: 6px 14px 12px 14px; }
+
+.cat-folder__item{
+  list-style: none;
+  padding: 6px 0;
+  border-top: 1px dashed color-mix(in srgb, currentColor 10%, transparent);
+}
+.cat-folder__item:first-child{ border-top:none; }
+
+.cat-folder__link{
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  text-decoration: none;
+}
+
+.cat-folder__title{ font-family: var(--font-body); }
+
+.cat-folder__date{
+  margin-left: auto;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.cat-folder__nameLink{
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+}
+
+.cat-folder__nameLink:hover{
+  color: #1f6feb; /* 你的 hover blue */
+}
+
+.cat-folder__toggle{
+  margin-left: 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  font-family: var(--font-ui);
+}
+
+.cat-folder[open] .cat-folder__toggle{
+  transform: rotate(180deg);
+}
