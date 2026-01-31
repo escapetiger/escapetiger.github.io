@@ -2,21 +2,20 @@
 &lt;p&gt;&lt;strong&gt;邮箱&lt;/strong&gt;: &lt;a href=""&gt;yicaim@stu.xmu.edu.cn&lt;/a&gt;&lt;/p&gt;</description></item><item><title>关于本站</title><link>https://escapetiger.github.io/zh/about/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://escapetiger.github.io/zh/about/</guid><description>&lt;p&gt;本站用于整理和分享我的学习、科研与生活片段，包括学习笔记、技术日志和生活感悟等。&lt;/p&gt;
 &lt;p&gt;页面内容以个人视角为主，难免带有主观性与不完整之处。如有疏漏或错误，欢迎交流与指正。希望这些记录既能成为个人生活与成长过程中的一些回忆，也能为感兴趣的读者在闲暇之余提供一点轻松的阅读体验。&lt;/p&gt;</description></item><item><title>学术研究</title><link>https://escapetiger.github.io/zh/research/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://escapetiger.github.io/zh/research/</guid><description>&lt;hr&gt;
 &lt;h2 id="待发布"&gt;待发布&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=""&gt;On the long-time behavior of discontinuous Galerkin method for the Vlasov-Poisson-Fokker-Planck model.&lt;/a&gt; &lt;strong&gt;Y. Cai&lt;/strong&gt;, F. Filbet, A. Blaustein, T. Xiong, in preparation.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href="https://escapetiger.github.io/files/paper_jcp_2026_hscx.pdf"&gt;An efficient asymptotic preserving Monte Carlo method for frequency-dependent radiative transfer equations.&lt;/a&gt; Y. Hong, Y. Shi, &lt;strong&gt;Y. Cai&lt;/strong&gt;, T. Xiong, submitted.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;a href=""&gt;Neural network based dynamic domain decomposition for multiscale kinetic equations.&lt;/a&gt; Q. Wang, &lt;strong&gt;Y. Cai&lt;/strong&gt;, T. Xiong, submitted.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
 &lt;h2 id="学术论文"&gt;学术论文&lt;/h2&gt;
 &lt;ul&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;a href=""&gt;Efficient asymptotic-preserving method based on characteristics for kinetic equations.&lt;/a&gt;
 &lt;strong&gt;Y. Cai&lt;/strong&gt;, Y. Hong, T. Xiong.
-&lt;em&gt;Chinese Journal of Computational Physics&lt;/em&gt;, 2025, accepted.&lt;/p&gt;
-&lt;/li&gt;
-&lt;li&gt;
-&lt;p&gt;&lt;a href="https://escapetiger.github.io/files/paper_jcp_2024_czzx.pdf"&gt;Asymptotic preserving semi-Lagrangian discontinuous Galerkin methods for multiscale kinetic transport equations.&lt;/a&gt;
-&lt;strong&gt;Y. Cai&lt;/strong&gt;, G. Zhang, H. Zhu, T. Xiong. &lt;em&gt;Journal of Computational Physics&lt;/em&gt;, 513 (2024): 113190.&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id="学术报告"&gt;学术报告&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href="https://escapetiger.github.io/files/ppt_toulouse_20260113.pdf"&gt;Vlasov-Poisson-Fokker-Planck模型的间断Galerkin有限元方法：长时间演化行为&lt;/a&gt;. &lt;strong&gt;01/13/2026&lt;/strong&gt;, &lt;em&gt;PDE组交流日&lt;/em&gt;, 图卢兹.&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://escapetiger.github.io/files/ppt_xiamen_20240922.pdf"&gt;多尺度动理学方程的基于特征线的渐近保持方法&lt;/a&gt;. &lt;strong&gt;22/09/2024&lt;/strong&gt;, 厦门.&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://escapetiger.github.io/files/ppt_beijing_20240615.pdf"&gt;多尺度动理学方程的渐近保持半拉格朗日间断Galerkin有限元方法&lt;/a&gt;. &lt;strong&gt;15/06/2024&lt;/strong&gt;, &lt;em&gt;第七届“非平衡输运问题的建模及数值方法”研讨会&lt;/em&gt;, 北京.&lt;/li&gt;
-&lt;/ul&gt;</description></item></channel></rss>
+&lt;em&gt;Chinese Journal of Computational Physics&lt;/em&gt;, 2025, accepted.&lt;/p&gt;</description></item></channel></rss>
