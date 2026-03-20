@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" dir="auto" data-theme="auto">
+<html lang="zh" dir="auto" data-theme="auto">
 
 <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="noindex, nofollow">
-<title>Repulsion | Yi Cai</title>
-<meta name="keywords" content="Life sciences">
-<meta name="description" content="Repulsion - Yi Cai">
+<title>Notes | 蔡逸</title>
+<meta name="keywords" content="">
+<meta name="description" content="Notes - 蔡逸">
 <meta name="author" content="">
-<link rel="canonical" href="http://localhost:1313/en/notes/model/repulsion/">
+<link rel="canonical" href="http://localhost:1313/zh/notes/">
 <link crossorigin="anonymous" href="/assets/css/stylesheet.1e342c8e3a3781f75d62ac389962ddc172875db012f8ddbc5f057b39f6e16e6d.css" integrity="sha256-HjQsjjo3gfddYqw4mWLdwXKHXbAS&#43;N28XwV7Ofbhbm0=" rel="preload stylesheet" as="style">
 <link rel="icon" href="http://localhost:1313/favicon.ico">
 <link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
@@ -18,7 +18,9 @@
 <link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
 <meta name="theme-color" content="#2e2e33">
 <meta name="msapplication-TileColor" content="#2e2e33">
-<link rel="alternate" hreflang="en" href="http://localhost:1313/en/notes/model/repulsion/">
+<link rel="alternate" type="application/rss+xml" href="http://localhost:1313/zh/notes/index.xml" title="rss">
+<link rel="alternate" hreflang="en" href="http://localhost:1313/en/notes/">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/zh/notes/">
 <noscript>
     <style>
         #theme-toggle,
@@ -116,11 +118,11 @@
 })();
 </script>
 </head>
-<body id="top">
+<body class="list" id="top">
     <header class="header">
     <nav class="nav">
         <div class="logo">
-            <a href="http://localhost:1313/en/" accesskey="h" title="Yi Cai (Alt + H)">Yi Cai</a>
+            <a href="http://localhost:1313/zh/" accesskey="h" title="蔡逸 (Alt + H)">蔡逸</a>
             <div class="logo-switches">
                 <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
                     <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
@@ -144,62 +146,72 @@
                 </button>
                     <ul class="lang-switch"><li>|</li>
                         <li>
-                            <a href="http://localhost:1313/zh/" title="中文"
-                                aria-label="中文">Zh</a>
+                            <a href="http://localhost:1313/en/" title="English"
+                                aria-label="English">En</a>
                         </li>
                     </ul>
             </div>
         </div>
         <ul id="menu">
             <li>
-                <a href="http://localhost:1313/en/about/" title="About">
-                    <span>About</span>
+                <a href="http://localhost:1313/zh/about/" title="关于">
+                    <span>关于</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/en/research/" title="Research">
-                    <span>Research</span>
+                <a href="http://localhost:1313/zh/research/" title="研究">
+                    <span>研究</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/en/categories/" title="Notes">
-                    <span>Notes</span>
+                <a href="http://localhost:1313/zh/categories/" title="笔记">
+                    <span>笔记</span>
                 </a>
             </li>
             <li>
-                <a href="http://localhost:1313/en/tags/" title="Tags">
-                    <span>Tags</span>
+                <a href="http://localhost:1313/zh/tags/" title="标签">
+                    <span>标签</span>
                 </a>
             </li>
         </ul>
     </nav>
 </header>
-<main class="main">
+<main class="main"> 
+<header class="page-header">
+  <h1>
+    Notes
+  </h1>
+</header>
 
-<article class="post-single">
-  <header class="post-header">
-    
-    <h1 class="post-title entry-hint-parent">
-      Repulsion
-    </h1>
-    <div class="post-meta"><span title='2026-02-26 00:00:00 +0000 UTC'>February 26, 2026</span>&nbsp;·&nbsp;<span>0 min</span>&nbsp;·&nbsp;<span>0 words</span>
-
-</div>
-  </header> 
-  <div class="post-content"><hr>
-
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">辐射输运方程
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>模型描述 辐射输运问题研究辐射能量在背景介质中的传播及其与物质之间的相互作用过程。光子是传输辐射能量的基本粒子。单个光子的能量为 $h\nu$，动量为 $\frac{h\nu}{c}$，其中 $c$ 为光速，$h$ 为普朗克常数。在固定时刻 $t$，光子的运动状态可由位置 $x\in\mathbb{R}^3$，传播方向 $\Omega\in\mathbb{S}^2$ 和频率 $\nu\in\mathbb{R}$ 表征。这里，$\mathbb{R}^3$ 表示三维欧几里得空间，$\mathbb{S}^{2}$ 表示嵌入于 $\mathbb{R}^3$ 中的单位球面。
+辐射能量可通过光子的数量分布来刻画。记相空间变量为
+$$ z = (x,\Omega,\nu), $$光子的分布函数为
+$$ f(t,x,\Omega,\nu). $$辐射场的能量分布可由辐射强度 $I$ 描述
+$$ I(t,x,\Omega,\nu) c h \nu f(t,x,\Omega,\nu). $$
+其物理意义为：在时刻 $t$，位置 $x$ 处沿方向 $\Omega$ 传播，频率为 $\nu$ 的辐射在单位时间、单位面积、单位立体角以及单位频率区间内所携带的能量。
+辐射能量的输运过程通常可分解为两类基本机制：自由输运与光子–介质相互作用。一方面，光子在介质中自由运动，引起辐射能量在物理空间中的传输；另一方面，光子在运动过程中会与背景介质发生相互作用，导致辐射场与介质之间的能量交换，其主要过程包括：
+吸收（absorption） 光子穿过介质时被吸收并消失，使能量由辐射场向介质转移。吸收过程可由吸收系数
+$$ \sigma_a(t,x,\nu) $$定量描述，其表示光子在单位传播路径内被吸收的概率。
+散射（scattering） 光子穿过介质后改变运动方向和频率继续运动。散射过程保持光子数守恒，但会重新分配在方向与频率空间中的分布。若散射过程中光子频率保持不变，则称为相干散射；若散射在方向上各向同性，则称为各向同性散射。散射过程可由散射系数
+$$ \sigma_s(t,x,\Omega\cdot\Omega&#39;,\nu\to\nu&#39;) $$定量描述，其表示在单位传播路径内，方向为 $\Omega$、频率为 $\nu$ 的光子散射成方向为 $\Omega’$、频率为 $\nu’$ 的光子的概率。
+发射（emission） 介质由于热运动或其他微观机制会产生新的光子，使能量由介质向辐射场转移。对于各向同性介质，发射过程可由源项
+$$ S(t,x,\nu) $$定量描述，其表示单位时间内发射出的、频率为 $\nu$ 的光子数量。
+在上述物理机制的共同作用下，辐射强度 $I$ 的时间演化可通过下列辐射输运方程描述：
+...</p>
   </div>
-
-  <footer class="post-footer">
-    <ul class="post-tags">
-      <li><a href="http://localhost:1313/en/tags/life-sciences/">Life Sciences</a></li>
-    </ul>
-  </footer>
+  <footer class="entry-footer"><span title='2026-03-02 00:00:00 +0000 UTC'>2026年3月2日</span>&nbsp;·&nbsp;<span>2 分钟</span>&nbsp;·&nbsp;<span>345 字</span></footer>
+  <a class="entry-link" aria-label="post link to 辐射输运方程" href="http://localhost:1313/zh/notes/model/radiation/"></a>
 </article>
     </main>
     
 <footer class="footer">
-        <span>&copy; 2026 <a href="http://localhost:1313/en/">Yi Cai</a></span> · 
+        <span>&copy; 2026 <a href="http://localhost:1313/zh/">蔡逸</a></span> · 
 
     <span>
         Powered by
@@ -295,53 +307,6 @@ document.addEventListener("click", (e) => {
         }
     })
 
-</script>
-<script>
-    document.querySelectorAll('pre > code').forEach((codeblock) => {
-        const container = codeblock.parentNode.parentNode;
-
-        const copybutton = document.createElement('button');
-        copybutton.classList.add('copy-code');
-        copybutton.innerHTML = 'copy';
-
-        function copyingDone() {
-            copybutton.innerHTML = 'copied!';
-            setTimeout(() => {
-                copybutton.innerHTML = 'copy';
-            }, 2000);
-        }
-
-        copybutton.addEventListener('click', (cb) => {
-            if ('clipboard' in navigator) {
-                navigator.clipboard.writeText(codeblock.textContent);
-                copyingDone();
-                return;
-            }
-
-            const range = document.createRange();
-            range.selectNodeContents(codeblock);
-            const selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
-            try {
-                document.execCommand('copy');
-                copyingDone();
-            } catch (e) { };
-            selection.removeRange(range);
-        });
-
-        if (container.classList.contains("highlight")) {
-            container.appendChild(copybutton);
-        } else if (container.parentNode.firstChild == container) {
-            
-        } else if (codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName == "TABLE") {
-            
-            codeblock.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(copybutton);
-        } else {
-            
-            codeblock.parentNode.appendChild(copybutton);
-        }
-    });
 </script>
 </body>
 

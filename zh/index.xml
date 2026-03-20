@@ -3,27 +3,14 @@
 &lt;h2 id="预印本"&gt;预印本&lt;/h2&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;a href=""&gt;Discrete hypocoercive estimates for discontinuous Galerkin methods applied to the Vlasov-Poisson-Fokker-Planck system&lt;/a&gt; &lt;strong&gt;Y. Cai&lt;/strong&gt;, A. Blaustein, T. Xiong, F. Filbet, in preparation.&lt;/p&gt;
+&lt;p&gt;&lt;a href=""&gt;Discrete hypocoercive estimates for discontinuous Galerkin methods applied to the Vlasov-Poisson-Fokker-Planck system.&lt;/a&gt; &lt;strong&gt;Y. Cai&lt;/strong&gt;, A. Blaustein, T. Xiong and F. Filbet, in preparation.&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
 &lt;p&gt;&lt;a href=""&gt;动理学方程的高效特征线型渐近保持方法.&lt;/a&gt;
-&lt;strong&gt;蔡逸&lt;/strong&gt;, 洪逸扬, 熊涛. 计算物理, 2025, accepted.&lt;/p&gt;
+&lt;strong&gt;蔡逸&lt;/strong&gt;, 洪逸扬, 熊涛. &lt;strong&gt;计算物理&lt;/strong&gt;, 2025, accepted.&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;a href="https://escapetiger.github.io/publications/paper_jcp_2026_hscx.pdf"&gt;An efficient asymptotic preserving Monte Carlo method for frequency-dependent radiative transfer equations.&lt;/a&gt; Y. Hong, Y. Shi, &lt;strong&gt;Y. Cai&lt;/strong&gt;, T. Xiong, submitted.&lt;/p&gt;
+&lt;p&gt;&lt;a href="https://escapetiger.github.io/publications/paper_jcp_2026_hscx.pdf"&gt;An efficient asymptotic preserving Monte Carlo method for frequency-dependent radiative transfer equations.&lt;/a&gt; Y. Hong, Y. Shi, &lt;strong&gt;Y. Cai&lt;/strong&gt; and T. Xiong, submitted.&lt;/p&gt;
 &lt;/li&gt;
 &lt;li&gt;
-&lt;p&gt;&lt;a href=""&gt;Neural network based dynamic domain decomposition for multiscale kinetic equations.&lt;/a&gt; Q. Wang, &lt;strong&gt;Y. Cai&lt;/strong&gt;, T. Xiong, submitted.&lt;/p&gt;
-&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id="出版著作"&gt;出版著作&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href="https://escapetiger.github.io/publications/paper_jcp_2024_czzx.pdf"&gt;Asymptotic preserving semi-Lagrangian discontinuous Galerkin methods for multiscale kinetic transport equations.&lt;/a&gt;
-&lt;strong&gt;Y. Cai&lt;/strong&gt;, G. Zhang, H. Zhu, T. Xiong. &lt;em&gt;Journal of Computational Physics&lt;/em&gt;, 513 (2024): 113190.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h2 id="学术报告"&gt;学术报告&lt;/h2&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;a href="https://escapetiger.github.io/talks/talk_toulouse_20260113.pdf"&gt;Vlasov-Poisson-Fokker-Planck模型的间断Galerkin有限元方法：长时间演化行为&lt;/a&gt;. &lt;strong&gt;01/13/2026&lt;/strong&gt;, &lt;em&gt;PDE组交流日&lt;/em&gt;, 图卢兹, 法国.&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://escapetiger.github.io/talks/talk_xiamen_20240922.pdf"&gt;多尺度动理学方程的基于特征线的渐近保持方法&lt;/a&gt;. &lt;strong&gt;22/09/2024&lt;/strong&gt;, 厦门, 中国.&lt;/li&gt;
-&lt;li&gt;&lt;a href="https://escapetiger.github.io/talks/talk_beijing_20240615.pdf"&gt;多尺度动理学方程的渐近保持半拉格朗日间断Galerkin有限元方法&lt;/a&gt;. &lt;strong&gt;15/06/2024&lt;/strong&gt;, &lt;em&gt;第七届“非平衡输运问题的建模及数值方法”研讨会&lt;/em&gt;, 北京, 中国.&lt;/li&gt;
-&lt;/ul&gt;</description></item></channel></rss>
+&lt;p&gt;&lt;a href=""&gt;Neural network based dynamic domain decomposition for multiscale kinetic equations.&lt;/a&gt; Q. Wang, &lt;strong&gt;Y. Cai&lt;/strong&gt; and T. Xiong, submitted.&lt;/p&gt;</description></item></channel></rss>
