@@ -1,6 +1,9 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 export const messages = {
   zh: {
+    editorMode: '编辑模式', homeHeading: '编辑主页', homeIntro: '选择要更新的栏目，继续编辑并发布到网站。',
+    homeCV: '更新个人简介、学术经历与报告。', homePublications: '管理论文信息、发表状态与链接。', homeBlog: '撰写笔记，管理草稿与已发布文章。',
+    homeEdit: '进入编辑', localEdits: '有本机修改', viewPublishedSite: '查看正式网站',
     previewLoading: '正在载入预览…', navCV: '简历', navPublications: '论文', navBlog: '博客',
     notebook: '我的笔记', toggleTheme: '切换明暗主题', allCategories: '全部分类', allTags: '全部标签', allYears: '全部年份', publicationYear: '文章年份',
     undated: '日期未设置', uncategorized: '未分类', noTags: '未设置', editArticle: '编辑文章',
@@ -65,6 +68,9 @@ export const messages = {
     articlesUnit: '篇文章', emptyTitle: '未命名文章'
   },
   en: {
+    editorMode: 'EDITOR', homeHeading: 'Editor home', homeIntro: 'Choose a section to update, then publish your changes to the website.',
+    homeCV: 'Update your biography, academic experience and talks.', homePublications: 'Manage papers, publication status and links.', homeBlog: 'Write notes and manage drafts and published posts.',
+    homeEdit: 'Start editing', localEdits: 'Local edits', viewPublishedSite: 'View published site',
     previewLoading: 'Loading preview…', navCV: 'CV', navPublications: 'Publications', navBlog: 'Blog',
     notebook: 'MY NOTEBOOK', toggleTheme: 'Toggle light and dark theme', allCategories: 'All categories', allTags: 'All tags', allYears: 'All years', publicationYear: 'Article year',
     undated: 'No date set', uncategorized: 'Uncategorized', noTags: 'None', editArticle: 'Edit article',

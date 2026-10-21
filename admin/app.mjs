@@ -1,7 +1,7 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=9';
+import { messages } from './messages.mjs?v=12';
 import { BackupStore } from './backups.mjs?v=11';
 import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
@@ -26,7 +26,7 @@ let pending = null, progressState = { stage: 'queued' }, pollTimer, checking = f
 let backupSession = null, assets = [], backupTimer, backupQueue = Promise.resolve(), backupsReturn = 'library';
 let imageSelection = { start: 0, end: 0 }, objectURLs = new Map(), libraryFrame = 0;
 const t = key => messages[locale][key];
-let section = 'blog';
+let section = 'home';
 const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify: notice,
   published(result) {
     clearTimeout(pollTimer); ++pollEpoch;
@@ -36,7 +36,28 @@ const dataEditor = new DataEditor({ root: $('data-content'), locale: () => local
     savePending(); progressState = { stage: 'queued' }; renderProgress(); setView('result'); void checkProgress();
   }
 });
+function renderHome() {
+  $('home-resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
+  $('home-progress').hidden = !pending;
+  $('published-site').href = `${siteOrigin}/${locale}/`;
+  document.querySelectorAll('[data-local-edits]').forEach(node => {
+    const kind = node.dataset.localEdits;
+    const edited = kind === 'blog' ? dirty && articleLanguage($('path').value) === locale
+      : dataEditor.kind === kind ? dataEditor.dirty : dataEditor.sessions.get(kind)?.dirty;
+    node.hidden = !edited;
+  });
+}
+async function openHome(push = true) {
+  if (!api) { setView('login', push); return; }
+  await run(async () => {
+    if (!await mayReplace() || (dataEditor.dirty && !dataEditor.backup())) return;
+    setView('home', push);
+  });
+}
 function renderNavigation() {
+  $('editor-home').setAttribute('aria-label', t('homeHeading'));
+  if (section === 'home') $('editor-home').setAttribute('aria-current', 'page');
+  else $('editor-home').removeAttribute('aria-current');
   document.querySelector('.section-menu').setAttribute('aria-label', locale === 'zh' ? '编辑栏目' : 'Edit section');
   document.querySelectorAll('[data-section]').forEach(button => {
     button.textContent = t({ cv: 'navCV', publications: 'navPublications', blog: 'navBlog' }[button.dataset.section]);
@@ -72,6 +93,8 @@ function setView(next, push = true) {
   if (next !== 'library') ++hydrationEpoch;
   if (['library', 'editor', 'new', 'backups'].includes(next)) section = 'blog';
   if (next === 'result') section = pending?.kind || 'blog';
+  if (['home', 'login'].includes(next)) section = next;
+  renderHome();
   renderNavigation();
   document.body.dataset.view = next;
   if (next === 'editor') window.scrollTo(0, 0);
@@ -96,6 +119,7 @@ async function run(task) {
   finally { busy = false; setBusy(false); }
 }
 function setBusy(value) {
+  $('editor-home').setAttribute('aria-disabled', String(value));
   // Keep export available even when a network request is pending.
   document.querySelectorAll('button, input, select, textarea').forEach(node => {
     if (!['export', 'data-export', 'locale', 'theme-toggle'].includes(node.id)) node.disabled = value;
@@ -140,7 +164,7 @@ function renderLocale() {
   $('theme-toggle').title = t('toggleTheme');
   $('resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
   $('preview-frame').title = t('preview');
-  renderConnection();
+  renderConnection(); renderHome();
   if (tab === 'preview') updatePreview();
   if (view === 'backups') void showBackups();
   if (view === 'data') dataEditor.render();
@@ -372,7 +396,7 @@ async function updatePreview() {
   finally { $('preview-frame').setAttribute('aria-busy', 'false'); if ($('preview-loading')) $('preview-loading').hidden = true; }
 }
 async function showBackups() {
-  if (view !== 'backups') { backupsReturn = view === 'editor' ? 'editor' : 'library'; await flushBackup(true); setView('backups'); }
+  if (view !== 'backups') { backupsReturn = ['editor', 'home'].includes(view) ? view : 'library'; await flushBackup(true); setView('backups'); }
   try {
     try { await backups.migrate(); } catch { notice(t('invalidBackup'), true); }
     await backups.collect();
@@ -565,6 +589,11 @@ $('locale').addEventListener('click', () => {
   renderLocale();
   if (api && view === 'library') void hydrate(api);
 });
+$('editor-home').addEventListener('click', event => { event.preventDefault(); if (!busy) void openHome(); });
+document.querySelectorAll('[data-open-section]').forEach(button => button.addEventListener('click', () => void openSection(button.dataset.openSection)));
+for (const [home, target] of [['home-resume', 'resume'], ['home-progress', 'progress'], ['home-backups', 'restore'], ['home-logout', 'logout']]) {
+  $(home).addEventListener('click', () => $(target).click());
+}
 document.querySelectorAll('[data-section]').forEach(button => button.addEventListener('click', () => void openSection(button.dataset.section)));
 $('data-export').addEventListener('click', () => dataEditor.export());
 $('data-reload').addEventListener('click', () => { if (confirm(dataEditor.text('reload'))) void run(async () => { await dataEditor.open(section, true); }); });
@@ -576,6 +605,8 @@ function renderConnection() {
   $('reauth').hidden = authMode !== 'github';
   $('logout').textContent = t(authMode === 'github' ? 'signOut' : 'logout');
   $('connection-status').textContent = authMode === 'github' ? `${t('signedInAs')} ${accountLogin}` : t(remembered ? 'deviceRemembered' : 'sessionOnly');
+  $('home-connection').textContent = $('connection-status').textContent;
+  $('home-logout').textContent = $('logout').textContent;
 }
 async function connect(token, remember, automatic = false) {
   await run(async () => {
@@ -601,7 +632,7 @@ async function connected() {
   restorePending();
   section = 'blog'; renderNavigation();
   const active = pending && !terminalStages.has(progressState.stage);
-  setView(active ? 'result' : 'library', false);
+  setView(active ? 'result' : 'home', false);
   if (active) { renderProgress(); void checkProgress(true); }
 }
 $('reauth').addEventListener('click', async () => {
@@ -709,7 +740,8 @@ $('logout').addEventListener('click', async () => {
 window.addEventListener('popstate', event => {
   const next = event.state?.editorView;
   if (next === 'data' && ['cv', 'publications'].includes(event.state?.section)) { void openSection(event.state.section, false); return; }
-  if (['login', 'library', 'editor', 'new', 'result', 'backups', 'data'].includes(next)) setView(api && next === 'login' ? 'library' : next, false);
+  if (next === 'home') { void openHome(false); return; }
+  if (['login', 'library', 'editor', 'new', 'result', 'backups', 'data'].includes(next)) setView(api && next === 'login' ? 'home' : next, false);
 });
 window.addEventListener('beforeunload', event => { if (dirty || busy || dataEditor.dirty) { event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('pagehide', () => { clearTimeout(pollTimer); if (dirty) void flushBackup(true); });
