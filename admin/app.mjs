@@ -1,12 +1,14 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=3';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=3';
-import { messages } from './messages.mjs?v=3';
+import { messages } from './messages.mjs?v=4';
 import { BackupStore } from './backups.mjs?v=3';
 import { drawBackups } from './backup-ui.mjs?v=3';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=3';
 import { renderPreview } from './preview.mjs?v=3';
+import { Credentials } from './credentials.mjs?v=4';
 
+const credentials = new Credentials();
 const $ = id => document.getElementById(id);
 const pendingKey = 'yicai-blog-publication-v1', backups = new BackupStore();
 const sourceRepo = 'https://github.com/escapetiger/hugo-yicai';
@@ -89,6 +91,7 @@ function renderLocale() {
   $('source').placeholder = t('bodyHint');
   renderCards(); renderEditorHeading(); renderProgress();
   $('preview-frame').title = t('preview');
+  renderConnection();
   if (tab === 'preview') updatePreview();
   if (view === 'backups') void showBackups();
 }
@@ -463,17 +466,45 @@ function updateViewport() {
 
 $('locale').addEventListener('change', () => { locale = $('locale').value; renderLocale(); });
 for (const id of ['search', 'filter-language', 'filter-state']) $(id).addEventListener(id === 'search' ? 'input' : 'change', renderCards);
-$('login-form').addEventListener('submit', event => {
-  event.preventDefault();
-  run(async () => {
-    api = new GitHub($('token').value.trim()); $('token').value = '';
-    try { await refresh(); } catch (error) { api.token = ''; api = null; throw error; }
+function renderConnection() {
+  const remembered = Boolean(credentials.read());
+  $('saved-login').hidden = !remembered;
+  $('connection-status').textContent = t(remembered ? 'deviceRemembered' : 'sessionOnly');
+}
+async function connect(token, remember, automatic = false) {
+  await run(async () => {
+    if (automatic) notice(t('autoConnecting'));
+    api = new GitHub(token); $('token').value = '';
+    try { await refresh(); } catch (error) {
+      api.token = ''; api = null; ++libraryEpoch; files = []; cache.clear();
+      if (error.status === 401) {
+        const cleared = credentials.clear(); renderConnection();
+        throw new Error(t(cleared ? 'tokenExpired' : 'forgetFailed'));
+      }
+      renderConnection();
+      throw error;
+    }
+    const stored = remember ? credentials.save(token) : credentials.clear();
+    renderConnection();
     try { await backups.migrate(); } catch { /* Existing local backups are retained if migration is unavailable. */ }
     restorePending();
     const active = pending && !terminalStages.has(progressState.stage);
     setView(active ? 'result' : 'library', false);
+    if (!stored) notice(t(remember ? 'rememberFailed' : 'forgetFailed'), true);
     if (active) { renderProgress(); void checkProgress(true); }
   });
+}
+$('login-form').addEventListener('submit', event => {
+  event.preventDefault();
+  void connect($('token').value.trim(), $('remember-device').checked);
+});
+$('retry-saved').addEventListener('click', () => {
+  const token = credentials.read();
+  if (token) void connect(token, true, true);
+});
+$('forget-saved').addEventListener('click', () => {
+  const cleared = credentials.clear(); $('remember-device').checked = false;
+  renderConnection(); notice(t(cleared ? 'forgotten' : 'forgetFailed'), !cleared);
 });
 $('refresh').addEventListener('click', () => run(refresh));
 $('new').addEventListener('click', () => {
@@ -550,7 +581,8 @@ $('logout').addEventListener('click', async () => {
   $('source').value = ''; $('raw-source').value = ''; $('path').value = '';
   dirty = false; pending = null;
   clearTimeout(backupTimer); resetImageURLs(); backupSession = null; assets = [];
-  setView('login', false); notice(t('disconnected'));
+  const cleared = credentials.clear(); $('remember-device').checked = false;
+  renderConnection(); setView('login', false); notice(t(cleared ? 'disconnected' : 'forgetFailed'), !cleared);
 });
 window.addEventListener('popstate', event => {
   const next = event.state?.editorView;
@@ -567,3 +599,8 @@ window.visualViewport?.addEventListener('resize', updateViewport);
 window.visualViewport?.addEventListener('scroll', updateViewport);
 window.addEventListener('resize', updateViewport);
 renderLocale(); setView('login', false);
+function autoConnect() {
+  const token = credentials.read();
+  if (token) void connect(token, true, true);
+}
+autoConnect();

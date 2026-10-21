@@ -12,12 +12,12 @@
   <title>Blog Editor · Yi Cai</title>
   <link rel="icon" href="/favicon/favicon.ico">
   <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
-  <link rel="stylesheet" href="admin.css?v=3">
+  <link rel="stylesheet" href="admin.css?v=4">
   <script src="vendor/js-yaml.min.js" defer></script>
   <script src="vendor/markdown-it.min.js" defer></script>
   <script src="vendor/purify.min.js" defer></script>
   <script src="vendor/katex/katex.min.js" defer></script>
-  <script src="app.mjs?v=3.1" type="module"></script>
+  <script src="app.mjs?v=4" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
@@ -33,9 +33,12 @@
         <label for="token" data-i18n="token"></label>
         <input id="token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" required>
         <p class="hint" data-i18n="tokenHelp"></p>
+        <label class="remember-option"><input id="remember-device" type="checkbox" aria-describedby="remember-help"><span data-i18n="rememberDevice"></span></label>
+        <p id="remember-help" class="hint" data-i18n="rememberHelp"></p>
         <button class="primary full" type="submit" data-i18n="connect"></button>
         <a class="subtle-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer" data-i18n="createToken"></a>
       </form>
+      <div id="saved-login" class="saved-login" hidden><button id="retry-saved" data-i18n="retrySaved"></button><button id="forget-saved" class="quiet" data-i18n="forgetSaved"></button></div>
     </section>
     <section id="library-view" class="view" hidden>
       <div class="page-heading"><div><p class="eyebrow">YOUR NOTEBOOK</p><h1 data-i18n="heading"></h1></div><button id="new" class="primary" data-i18n="new"></button></div>
@@ -51,6 +54,7 @@
       </div>
       <p id="library-count" class="hint" role="status"></p>
       <div id="articles" class="article-grid"></div>
+      <p id="connection-status" class="hint" role="status"></p>
       <div class="library-footer">
         <button id="resume" hidden data-i18n="resume"></button><button id="progress" hidden data-i18n="progress"></button>
         <button id="restore" class="quiet" data-i18n="restore"></button><button id="logout" class="quiet" data-i18n="logout"></button>
