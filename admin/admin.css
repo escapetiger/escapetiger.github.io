@@ -1,0 +1,27 @@
+/* Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details. */
+:root { color-scheme: light dark; --bg: #f5f3ee; --card: #fff; --ink: #242a29; --line: #b7c0b8; --accent: #226047; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 system-ui, -apple-system, sans-serif; }
+header, main { max-width: 960px; margin: auto; padding: 18px max(18px, env(safe-area-inset-left)); }
+header { display: flex; justify-content: space-between; align-items: center; }
+header select { width: auto; margin: 0; }
+h1 { font-size: clamp(26px, 5vw, 36px); margin: 10px 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+section { margin: 22px 0; }
+label { display: block; font-weight: 600; margin-top: 14px; }
+input, select, textarea, button { font: inherit; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--card); }
+input, select, textarea { width: 100%; padding: 11px; margin: 5px 0 10px; min-height: 48px; }
+textarea { display: block; resize: vertical; line-height: 1.7; font-family: ui-monospace, monospace; tab-size: 2; }
+button { min-height: 48px; padding: 10px 16px; cursor: pointer; }
+button:disabled { opacity: .5; cursor: wait; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.toolbar, .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions { position: sticky; bottom: 0; background: var(--bg); padding: 12px 0 max(12px, env(safe-area-inset-bottom)); }
+.hint, #backup-status { font-size: 14px; opacity: .85; }
+#status { white-space: pre-wrap; overflow-wrap: anywhere; }
+#status.error { color: #b02727; }
+#login-form > a { display: inline-block; margin: 12px; }
+@media (max-width: 600px) { .actions button { flex: 1; padding: 10px 8px; } textarea { min-height: 55dvh; } }
+@media (prefers-color-scheme: dark) { :root { --bg: #1c2220; --card: #272f2b; --ink: #eeefe9; --line: #66736b; --accent: #87cba7; } button.primary { color: #15231a; } #status.error { color: #ffaaa0; } }
