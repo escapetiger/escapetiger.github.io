@@ -1,7 +1,7 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=13';
+import { messages } from './messages.mjs?v=17';
 import { BackupStore } from './backups.mjs?v=11';
 import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
@@ -10,9 +10,10 @@ import { RepositoryCache } from './read-cache.mjs?v=9';
 import { loadPreview } from './preview-loader.mjs?v=9';
 import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=11';
 import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
+import { profileIcons } from './profile-icons.mjs?v=17';
 import { Credentials } from './credentials.mjs?v=4';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=13';
+import { DataEditor, dataPath } from './data-editor.mjs?v=17';
 
 const credentials = new Credentials();
 const $ = id => document.getElementById(id);
@@ -27,30 +28,48 @@ let backupSession = null, assets = [], backupTimer, backupQueue = Promise.resolv
 let imageSelection = { start: 0, end: 0 }, objectURLs = new Map(), libraryFrame = 0;
 const t = key => messages[locale][key];
 let section = 'home';
-const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify: notice,
-  published(result) {
-    clearTimeout(pollTimer); ++pollEpoch;
-    const file = result.files.find(file => file.path === dataPath(result.kind, locale));
-    pending = { ...file, files: result.files, kind: result.kind, commit: result.commit, action: 'publish',
-      title: result.kind === 'cv' ? 'CV' : 'Publications', url: `/${locale}/${result.kind}/`, started: Date.now() };
-    savePending(); progressState = { stage: 'queued' }; renderProgress(); setView('result'); void checkProgress();
-  }
-});
+function sectionPublished(result) {
+  clearTimeout(pollTimer); ++pollEpoch;
+  const file = result.files.find(file => file.path === dataPath(result.kind, locale));
+  pending = { ...file, files: result.files, kind: result.kind, commit: result.commit, action: 'publish',
+    title: t({ home: 'homeHeading', cv: 'navCV', publications: 'navPublications' }[result.kind]),
+    url: `/${locale}/${result.kind === 'home' ? '' : `${result.kind}/`}`, started: Date.now() };
+  $('profile-dialog').close(); renderHome();
+  savePending(); progressState = { stage: 'queued' }; renderProgress(); setView('result'); void checkProgress();
+}
+const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify: notice, published: sectionPublished });
+const homeEditor = new DataEditor({ root: $('home-fields'), locale: () => locale, api: () => api,
+  notify(message, error) { notice(message, error); renderHome(); }, published: sectionPublished });
 function renderHome() {
   $('home-resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
   $('home-progress').hidden = !pending;
   $('published-site').href = `${siteOrigin}/${locale}/`;
-  document.querySelectorAll('[data-local-edits]').forEach(node => {
-    const kind = node.dataset.localEdits;
-    const edited = kind === 'blog' ? dirty && articleLanguage($('path').value) === locale
-      : dataEditor.kind === kind ? dataEditor.dirty : dataEditor.sessions.get(kind)?.dirty;
-    node.hidden = !edited;
-  });
+  $('profile-year').textContent = new Date().getFullYear();
+  const profile = homeEditor.records?.[locale]?.value;
+  if (!profile) return;
+  $('profile-title').textContent = profile.title;
+  $('profile-subtitle').textContent = profile.subtitle;
+  $('profile-copyright').textContent = profile.title;
+  $('profile-contact').textContent = profile.contactLabel;
+  $('brand-label').textContent = profile.title;
+  $('editor-home').title = profile.title;
+  $('profile-avatar').alt = profile.imageTitle;
+  try {
+    const image = new URL(profile.image, siteOrigin);
+    if (/^(https:\/\/|\/(?!\/))/.test(profile.image) && image.protocol === 'https:' && !image.username && !image.password && $('profile-avatar').src !== image.href) $('profile-avatar').src = image.href;
+  } catch { /* Keep the last valid avatar while its link is being edited. */ }
+  $('home-dirty').hidden = !homeEditor.dirty;
+  $('profile-social').replaceChildren(...profile.social.map((link, index) => {
+    const button = document.createElement('button'); button.type = 'button'; button.className = 'quiet';
+    button.innerHTML = profileIcons[link.name] || '';
+    button.title = `${t('editLinks')} · ${link.name}`; button.setAttribute('aria-label', button.title);
+    button.addEventListener('click', () => editProfile(`social.${index}.url`)); return button;
+  }));
 }
 async function openHome(push = true) {
   if (!api) { setView('login', push); return; }
   await run(async () => {
-    if (!await mayReplace() || (dataEditor.dirty && !dataEditor.backup())) return;
+    if (!await mayReplace() || (dataEditor.dirty && !dataEditor.backup()) || (homeEditor.dirty && !homeEditor.backup())) return;
     setView('home', push);
   });
 }
@@ -69,7 +88,7 @@ async function openSection(next, push = true) {
   if (!api) { setView('login'); return; }
   await run(async () => {
     if (!await mayReplace()) return;
-    if (dataEditor.dirty && !dataEditor.backup()) return;
+    if ((dataEditor.dirty && !dataEditor.backup()) || (homeEditor.dirty && !homeEditor.backup())) return;
     if (next !== 'blog') {
       ++hydrationEpoch; notice(`${t('loading')} ${t(next === 'cv' ? 'navCV' : 'navPublications')}`);
       await dataEditor.open(next);
@@ -122,7 +141,7 @@ function setBusy(value) {
   $('editor-home').setAttribute('aria-disabled', String(value));
   // Keep export available even when a network request is pending.
   document.querySelectorAll('button, input, select, textarea').forEach(node => {
-    if (!['export', 'data-export', 'locale', 'theme-toggle'].includes(node.id)) node.disabled = value;
+    if (!['export', 'data-export', 'home-export', 'locale', 'theme-toggle'].includes(node.id)) node.disabled = value;
   });
   document.querySelectorAll('.view').forEach(node => node.setAttribute('aria-busy', String(value && !node.hidden)));
 }
@@ -167,6 +186,7 @@ function renderLocale() {
   if (tab === 'preview') updatePreview();
   if (view === 'backups') void showBackups();
   if (view === 'data') dataEditor.render();
+  if ($('profile-dialog').open) homeEditor.render();
   renderNavigation();
   if (busy) setBusy(true);
 }
@@ -468,7 +488,7 @@ function restorePending() {
     const record = JSON.parse(localStorage.getItem(pendingKey));
     if (!record || !/^[0-9a-f]{40}$/.test(record.commit) || !/^[0-9a-f]{40}$/.test(record.sha) ||
         !['draft', 'publish'].includes(record.action) || !Number.isFinite(record.started)) return;
-    if (['cv', 'publications'].includes(record.kind)) {
+    if (['home', 'cv', 'publications'].includes(record.kind)) {
       if (!['en', 'zh'].some(lang => record.path === dataPath(record.kind, lang)) ||
           !Array.isArray(record.files) || record.files.length !== 2 || !['en', 'zh'].every(lang => record.files.some(file => file.path === dataPath(record.kind, lang) && /^[0-9a-f]{40}$/.test(file.sha)))) return;
     } else postPath(record.path);
@@ -591,7 +611,21 @@ $('locale').addEventListener('click', () => {
   if (api && view === 'library') void hydrate(api);
 });
 $('editor-home').addEventListener('click', event => { event.preventDefault(); if (!busy) void openHome(); });
-document.querySelectorAll('[data-open-section]').forEach(button => button.addEventListener('click', () => void openSection(button.dataset.openSection)));
+function editProfile(field) {
+  if (busy || !homeEditor.records) return;
+  homeEditor.render();
+  const input = $('home-fields').querySelector(field === 'social' ? '[data-field^="social."]' : `[data-field="${field}"]`);
+  for (let group = input?.closest('details'); group; group = group.parentElement.closest('details')) group.open = true;
+  if (field === 'social') $('home-fields').querySelector('[data-group="social"]').open = true;
+  $('profile-dialog').showModal();
+  input?.focus(); input?.scrollIntoView({ block: 'nearest' });
+}
+document.querySelectorAll('[data-edit-profile]').forEach(button => button.addEventListener('click', () => editProfile(button.dataset.editProfile)));
+$('profile-close').addEventListener('click', () => { if (homeEditor.backup()) $('profile-dialog').close(); });
+$('profile-dialog').addEventListener('cancel', event => { if (busy || !homeEditor.backup()) event.preventDefault(); });
+$('home-export').addEventListener('click', () => homeEditor.export());
+$('home-reload').addEventListener('click', () => { if (confirm(homeEditor.text('reload'))) void run(async () => { await homeEditor.open('home', true); renderHome(); }); });
+for (const id of ['home-publish', 'home-publish-quick']) $(id).addEventListener('click', () => void run(() => homeEditor.publish()));
 for (const [home, target] of [['home-resume', 'resume'], ['home-progress', 'progress'], ['home-backups', 'restore'], ['home-logout', 'logout']]) {
   $(home).addEventListener('click', () => $(target).click());
 }
@@ -630,8 +664,9 @@ async function connect(token, remember, automatic = false) {
 async function connected() {
   renderConnection();
   try { await backups.migrate(); } catch { /* Existing local backups are retained if migration is unavailable. */ }
+  await homeEditor.open('home');
   restorePending();
-  section = 'blog'; renderNavigation();
+  section = 'home'; renderNavigation();
   const active = pending && !terminalStages.has(progressState.stage);
   setView(active ? 'result' : 'home', false);
   if (active) { renderProgress(); void checkProgress(true); }
@@ -718,13 +753,13 @@ $('publish').addEventListener('click', () => save('publish'));
 $('retract').addEventListener('click', () => save('draft', true));
 $('progress').addEventListener('click', () => { setView('result'); renderProgress(); void checkProgress(true); });
 $('check-status').addEventListener('click', () => checkProgress(true));
-$('continue-editing').addEventListener('click', () => { if (pending?.kind) { void openSection(pending.kind); return; } if (documentText) setView('editor'); else void showBackups(); });
+$('continue-editing').addEventListener('click', () => { if (pending?.kind) { if (pending.kind === 'home') void openHome(); else void openSection(pending.kind); return; } if (documentText) setView('editor'); else void showBackups(); });
 $('result-back').addEventListener('click', () => void openSection('blog'));
 $('export').addEventListener('click', () => {
   download(new Blob([documentText], { type: 'text/markdown;charset=utf-8' }), $('path').value.split('/').at(-1) || 'article.md'); $('more-menu').open = false;
 });
 $('logout').addEventListener('click', async () => {
-  if (!await mayReplace() || (dataEditor.dirty && !dataEditor.backup())) return;
+  if (!await mayReplace() || (dataEditor.dirty && !dataEditor.backup()) || (homeEditor.dirty && !homeEditor.backup())) return;
   if (authMode === 'github') {
     try { await api.logout(); }
     catch { notice(t('signOutFailed'), true); return; }
@@ -733,7 +768,7 @@ $('logout').addEventListener('click', async () => {
   if (api) { await api.readCache?.clear(); api.token = ''; } api = null; accountLogin = '';
   files = []; cache.clear(); documentText = ''; originalPath = null; originalSha = null;
   $('source').value = ''; $('raw-source').value = ''; $('path').value = '';
-  dirty = false; pending = null; dataEditor.clear(); section = 'blog'; renderNavigation();
+  dirty = false; pending = null; dataEditor.clear(); homeEditor.clear(); section = 'blog'; renderNavigation();
   clearTimeout(backupTimer); resetImageURLs(); backupSession = null; assets = [];
   const cleared = credentials.clear(); $('remember-device').checked = false;
   renderConnection(); setView('login', false); notice(t(authMode === 'github' ? 'signedOut' : cleared ? 'disconnected' : 'forgetFailed'), authMode === 'token' && !cleared);
@@ -744,7 +779,7 @@ window.addEventListener('popstate', event => {
   if (next === 'home') { void openHome(false); return; }
   if (['login', 'library', 'editor', 'new', 'result', 'backups', 'data'].includes(next)) setView(api && next === 'login' ? 'home' : next, false);
 });
-window.addEventListener('beforeunload', event => { if (dirty || busy || dataEditor.dirty) { event.preventDefault(); event.returnValue = ''; } });
+window.addEventListener('beforeunload', event => { if (dirty || busy || dataEditor.dirty || homeEditor.dirty) { event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('pagehide', () => { clearTimeout(pollTimer); if (dirty) void flushBackup(true); });
 window.addEventListener('pageshow', () => { updateViewport(); if (api && pending) void checkProgress(true); });
 document.addEventListener('visibilitychange', () => {
@@ -780,7 +815,7 @@ async function initializeLogin() {
       try { session = await authRequest('session'); }
       catch (error) { if (error.status === 401) return; throw error; }
       api = new SessionGitHub(session, t('sessionExpired')); api.readCache = new RepositoryCache(); accountLogin = session.login;
-      try { listing = true; await connected(); await refresh(); }
+      try { listing = true; await refresh(); await connected(); }
       catch (error) { api = null; accountLogin = ''; throw error; }
     }
   });

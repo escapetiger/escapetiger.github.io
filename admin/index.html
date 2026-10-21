@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self' https://api.github.com; frame-src 'self'; img-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; connect-src 'self' https://api.github.com; frame-src 'self'; img-src 'self' blob: https:; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Blog Editor">
   <meta name="theme-color" content="#f5f3ee">
@@ -17,13 +17,13 @@
   <script src="ink-click.js?v=14" defer></script>
   <link id="editor-fonts" rel="stylesheet" href="vendor/wenkai/font.css" media="print">
   <link rel="stylesheet" href="site.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=13">
+  <link rel="stylesheet" href="admin.css?v=17">
   <script src="vendor/js-yaml.min.js" defer></script>
-  <script src="app.mjs?v=13" type="module"></script>
+  <script src="app.mjs?v=17" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
-    <div class="nav-left"><a id="editor-home" class="brand" href="#home">Yi Cai</a>
+    <div class="nav-left"><a id="editor-home" class="brand" href="#home"><span id="brand-label" class="brand-label">Yi Cai</span></a>
     <div class="site-tools"><button id="theme-toggle" class="quiet theme-toggle" type="button" data-theme-toggle accesskey="t" aria-label="Toggle theme"><svg id="moon" class="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
@@ -61,13 +61,21 @@
       <div id="saved-login" class="saved-login" hidden><button id="retry-saved" data-i18n="retrySaved"></button><button id="forget-saved" class="quiet" data-i18n="forgetSaved"></button></div>
     </section>
     <section id="home-view" class="view home-view" hidden>
-      <h1 data-i18n="homeHeading"></h1>
+      <h1 class="sr-only" data-i18n="homeHeading"></h1>
       <p data-notice role="status" hidden></p>
-      <div class="home-grid">
-        <button type="button" class="home-card" data-open-section="cv"><strong data-i18n="navCV"></strong><span class="badge" data-local-edits="cv" data-i18n="localEdits" hidden></span><span class="home-arrow" aria-hidden="true">→</span></button>
-        <button type="button" class="home-card" data-open-section="publications"><strong data-i18n="navPublications"></strong><span class="badge" data-local-edits="publications" data-i18n="localEdits" hidden></span><span class="home-arrow" aria-hidden="true">→</span></button>
-        <button type="button" class="home-card" data-open-section="blog"><strong data-i18n="navBlog"></strong><span class="badge" data-local-edits="blog" data-i18n="localEdits" hidden></span><span class="home-arrow" aria-hidden="true">→</span></button>
+      <div class="home-profile">
+        <div class="profile-avatar editable-part"><img id="profile-avatar" width="160" height="160" alt=""><button type="button" class="edit-part" data-edit-profile="image" data-i18n="editAvatar"></button></div>
+        <div class="editable-part"><h2 id="profile-title"></h2><button type="button" class="edit-part" data-edit-profile="title" data-i18n="editName"></button></div>
+        <div class="editable-part"><p id="profile-subtitle"></p><button type="button" class="edit-part" data-edit-profile="subtitle" data-i18n="editMotto"></button></div>
+        <div class="editable-part"><div id="profile-social" class="profile-social"></div><button type="button" class="edit-part" data-edit-profile="social" data-i18n="editLinks"></button></div>
+        <div id="home-dirty" hidden><span class="badge" data-i18n="localEdits"></span><button id="home-publish-quick" type="button" class="quiet" data-i18n="publishHome"></button></div>
       </div>
+      <div class="profile-page-footer"><span>© <span id="profile-year"></span> <span id="profile-copyright"></span></span><span aria-hidden="true"> · </span><button id="profile-contact" class="quiet" data-edit-profile="contactLabel"></button><span> · Powered by Hugo &amp; PaperMod</span></div>
+      <dialog id="profile-dialog" aria-labelledby="profile-dialog-title">
+        <div class="profile-dialog-heading"><h2 id="profile-dialog-title" data-i18n="homeHeading"></h2><button type="button" id="profile-close" class="quiet" data-i18n="cancel"></button></div>
+        <p data-notice role="status" hidden></p><div id="home-fields"></div>
+        <div class="data-actions"><button type="button" id="home-export" data-i18n="exportHome"></button><button type="button" id="home-reload" data-i18n="refresh"></button><button type="button" id="home-publish" class="primary" data-i18n="publishHome"></button></div>
+      </dialog>
       <div class="library-footer"><button id="home-resume" data-i18n="resume" hidden></button><button id="home-progress" data-i18n="progress" hidden></button><button id="home-backups" class="quiet" data-i18n="restore"></button></div>
       <footer class="home-footer"><div><p id="home-connection" class="hint" role="status"></p><button id="home-logout" class="quiet" data-i18n="logout"></button></div><a id="published-site" target="_blank" rel="noopener noreferrer"><span data-i18n="viewPublishedSite"></span> ↗</a></footer>
     </section>

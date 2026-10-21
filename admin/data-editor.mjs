@@ -1,6 +1,6 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 export const dataPath = (kind, lang) => {
-  if (!['cv', 'publications'].includes(kind) || !['en', 'zh'].includes(lang)) throw new Error('Invalid section.');
+  if (!['home', 'cv', 'publications'].includes(kind) || !['en', 'zh'].includes(lang)) throw new Error('Invalid section.');
   return `data/${lang}/${kind}.yaml`;
 };
 const sections = ['research', 'appointments', 'education', 'visiting', 'service', 'talks', 'posters', 'teaching'];
@@ -20,6 +20,20 @@ export function parseData(kind, text, incomplete = false) {
     for (const entry of value) {
       if (!object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim()) || !['published', 'submitted', 'drafted'].includes(entry.status) || !Number.isInteger(entry.year) || entry.year < 1900 || entry.year > 2200) throw new Error('Each publication needs a title, status and year (1900–2200).');
     }
+  } else if (kind === 'home') {
+    const safeLink = link => {
+      if (typeof link !== 'string' || /[\\\x00-\x20]/.test(link)) return false;
+      if (/^\/(?!\/)/.test(link)) return true;
+      try {
+        const url = new URL(link);
+        return !url.username && !url.password && (url.protocol === 'https:' || url.protocol === 'mailto:' && /^[^@]+@[^@]+$/.test(url.pathname));
+      } catch { return false; }
+    };
+    if (!object(value) || !['title', 'subtitle', 'image', 'imageTitle', 'contactLabel', 'contactURL'].every(key => typeof value[key] === 'string') ||
+      !Array.isArray(value.social) || value.social.length > 12 || value.social.some(entry => !object(entry) ||
+        typeof entry.name !== 'string' || typeof entry.url !== 'string') || !incomplete && (
+        !value.title.trim() || !safeLink(value.image) || /^mailto:/i.test(value.image) || !safeLink(value.contactURL) ||
+        value.social.some(entry => !['email', 'github', 'googlescholar'].includes(entry.name) || !safeLink(entry.url)))) throw new Error('Invalid home profile or link.');
   } else if (kind === 'cv') {
     if (!object(value) || typeof value.intro !== 'string' || typeof value.pdf !== 'string') throw new Error('CV needs intro and pdf fields.');
     for (const key of sections) {
@@ -54,8 +68,8 @@ export async function saveData(api, kind, records) {
   return { commit: commit.sha, files: entries };
 }
 const labels = {
-  zh: { intro: '个人简介', pdf: 'PDF 路径', research: '研究方向', appointments: '工作经历', education: '教育经历', visiting: '访问经历', service: '学术服务', talks: '学术报告', posters: '海报', teaching: '教学经历', title: '标题', items: '条目', entries: '条目', date: '日期', institution: '机构', detail: '说明', location: '地点', type: '类型', event_url: '活动链接', date_start: '开始日期', date_end: '结束日期', slides: '幻灯片路径', authors: '作者', publisher: '期刊 / 出版物', volume: '卷期', pages: '页码', year: '年份', status: '状态', code: '代码链接', url: '论文链接' },
-  en: { intro: 'Introduction', pdf: 'PDF path', research: 'Research', appointments: 'Appointments', education: 'Education', visiting: 'Visiting experience', service: 'Academic service', talks: 'Talks', posters: 'Posters', teaching: 'Teaching', title: 'Title', items: 'Items', entries: 'Entries', date: 'Date', institution: 'Institution', detail: 'Details', location: 'Location', type: 'Type', event_url: 'Event URL', date_start: 'Start date', date_end: 'End date', slides: 'Slides path', authors: 'Authors', publisher: 'Journal / publisher', volume: 'Volume', pages: 'Pages', year: 'Year', status: 'Status', code: 'Code URL', url: 'Paper URL' }
+  zh: { subtitle: '座右铭', image: '头像链接', imageTitle: '头像描述', social: '社交链接', name: '图标', contactLabel: '联系链接文字', contactURL: '联系链接', intro: '个人简介', pdf: 'PDF 路径', research: '研究方向', appointments: '工作经历', education: '教育经历', visiting: '访问经历', service: '学术服务', talks: '学术报告', posters: '海报', teaching: '教学经历', title: '标题', items: '条目', entries: '条目', date: '日期', institution: '机构', detail: '说明', location: '地点', type: '类型', event_url: '活动链接', date_start: '开始日期', date_end: '结束日期', slides: '幻灯片路径', authors: '作者', publisher: '期刊 / 出版物', volume: '卷期', pages: '页码', year: '年份', status: '状态', code: '代码链接', url: '论文链接' },
+  en: { subtitle: 'Motto', image: 'Avatar URL', imageTitle: 'Avatar description', social: 'Social links', name: 'Icon', contactLabel: 'Contact label', contactURL: 'Contact URL', intro: 'Introduction', pdf: 'PDF path', research: 'Research', appointments: 'Appointments', education: 'Education', visiting: 'Visiting experience', service: 'Academic service', talks: 'Talks', posters: 'Posters', teaching: 'Teaching', title: 'Title', items: 'Items', entries: 'Entries', date: 'Date', institution: 'Institution', detail: 'Details', location: 'Location', type: 'Type', event_url: 'Event URL', date_start: 'Start date', date_end: 'End date', slides: 'Slides path', authors: 'Authors', publisher: 'Journal / publisher', volume: 'Volume', pages: 'Pages', year: 'Year', status: 'Status', code: 'Code URL', url: 'Paper URL' }
 };
 const blankPublication = () => ({ title: '', status: 'submitted', authors: '', publisher: '', volume: '', pages: '', year: new Date().getFullYear(), pdf: '', code: '', url: '' });
 const blankEntry = key => key === 'research' ? '' : key === 'talks' ? { title: '', type: 'seminar', event_url: '', location: '', date_start: '', date_end: '', slides: '' } : { title: '', date: '', institution: '', detail: '', location: '' };
@@ -64,7 +78,7 @@ export class DataEditor {
   constructor({ root, locale, api, notify, published }) {
     Object.assign(this, { root, locale, api, notify, published }); this.records = null; this.dirty = false; this.backupVersion = null; this.sessions = new Map();
   }
-  text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '添加条目' : 'Add entry', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '已备份 · 未发布' : 'Backed up · Unpublished', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布当前 CV / Publications 的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
+  text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '添加条目' : 'Add entry', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '已备份 · 未发布' : 'Backed up · Unpublished', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布此部分的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
   async open(kind, reload = false) {
     if (this.kind && this.records) this.sessions.set(this.kind, { records: this.records, dirty: this.dirty, backupVersion: this.backupVersion });
     const client = this.api(), saved = this.sessions.get(kind), inventory = client.latestSnapshot;
@@ -117,7 +131,7 @@ export class DataEditor {
     const expanded = new Set(this.renderedLang === lang ? [...this.root.querySelectorAll('details[open][data-group]')].map(node => node.dataset.group) : []);
     this.renderedLang = lang;
     this.root.replaceChildren();
-    const heading = document.createElement('h1'); heading.textContent = this.kind === 'cv' ? (zh ? '简历' : 'CV') : (zh ? '论文' : 'Publications'); this.root.append(heading);
+    const heading = document.createElement('h1'); heading.textContent = this.kind === 'home' ? (zh ? '首页' : 'Home') : this.kind === 'cv' ? (zh ? '简历' : 'CV') : (zh ? '论文' : 'Publications'); this.root.append(heading);
     const target = document.createElement('div'); target.className = 'data-fields'; this.root.append(target);
     this.fields(target, record.value, [], record.value);
     for (const details of this.root.querySelectorAll('details[data-group]')) if (expanded.has(details.dataset.group) || details.dataset.group === this.revealPath) details.open = true;
@@ -132,7 +146,7 @@ export class DataEditor {
     if (Array.isArray(value)) {
       value.forEach((entry, index) => {
         const details = document.createElement('details'); details.className = 'surface data-entry'; details.dataset.group = [...path, index].join('.');
-        const summary = document.createElement('summary'); summary.textContent = `${index + 1}. ${typeof entry === 'string' ? entry : entry.title || '…'}`; details.append(summary);
+        const summary = document.createElement('summary'); summary.textContent = `${index + 1}. ${typeof entry === 'string' ? entry : entry.title || entry.name || '…'}`; details.append(summary);
         this.fields(details, entry, [...path, index], value, index);
         const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.textContent = this.text('remove');
         remove.onclick = () => { if (confirm(this.text('delete'))) { value.splice(index, 1); this.changed(); this.render(); } }; details.append(remove); root.append(details);
@@ -142,7 +156,7 @@ export class DataEditor {
         for (const language of ['en', 'zh']) {
           let list = this.records[language].value;
           for (const segment of path) list = list[segment];
-          list.push(this.kind === 'publications' ? blankPublication() : blankEntry(path[0]));
+          list.push(this.kind === 'home' ? { name: 'github', url: 'https://github.com/' } : this.kind === 'publications' ? blankPublication() : blankEntry(path[0]));
           this.records[language].text = globalThis.jsyaml.dump(this.records[language].value, { lineWidth: 100, noRefs: true, schema: globalThis.jsyaml.JSON_SCHEMA });
         }
         this.revealPath = [...path, value.length - 1].join('.'); this.dirty = true; this.backup(); this.render();
@@ -161,7 +175,7 @@ export class DataEditor {
         }
       }
     } else {
-      const choices = key === 'status' ? ['published', 'submitted', 'drafted'] : key === 'type' ? ['seminar', 'workshop', 'conference'] : null;
+      const choices = this.kind === 'home' && key === 'name' ? ['email', 'github', 'googlescholar'] : key === 'status' ? ['published', 'submitted', 'drafted'] : key === 'type' ? ['seminar', 'workshop', 'conference'] : null;
       const input = document.createElement(choices ? 'select' : typeof value === 'boolean' ? 'input' : 'textarea');
       if (choices) for (const option of choices) input.append(new Option(option, option));
       if (typeof value === 'boolean') { input.type = 'checkbox'; input.checked = value; } else input.value = value ?? '';
