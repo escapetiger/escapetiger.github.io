@@ -1,18 +1,18 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=9';
+import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
 import { messages } from './messages.mjs?v=9';
-import { BackupStore } from './backups.mjs?v=9';
-import { drawBackups } from './backup-ui.mjs?v=9';
+import { BackupStore } from './backups.mjs?v=11';
+import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
 import { renderPreview } from './preview.mjs?v=6';
 import { RepositoryCache } from './read-cache.mjs?v=9';
 import { loadPreview } from './preview-loader.mjs?v=9';
-import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=9';
-import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=9';
+import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=11';
+import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
 import { Credentials } from './credentials.mjs?v=4';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=7';
+import { DataEditor, dataPath } from './data-editor.mjs?v=11';
 
 const credentials = new Credentials();
 const $ = id => document.getElementById(id);
@@ -49,7 +49,10 @@ async function openSection(next, push = true) {
   await run(async () => {
     if (!await mayReplace()) return;
     if (dataEditor.dirty && !dataEditor.backup()) return;
-    if (next !== 'blog') { ++hydrationEpoch; await dataEditor.open(next); }
+    if (next !== 'blog') {
+      ++hydrationEpoch; notice(`${t('loading')} ${t(next === 'cv' ? 'navCV' : 'navPublications')}`);
+      await dataEditor.open(next);
+    }
     section = next; renderNavigation(); setView(next === 'blog' ? 'library' : 'data', push);
   });
 }

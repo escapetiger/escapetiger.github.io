@@ -1,5 +1,5 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { articleState } from './core.mjs?v=9';
+import { articleState } from './core.mjs?v=11';
 export const localeKey = 'yicai-editor-locale-v1';
 export function preferredLocale(language, storage = () => globalThis.localStorage) {
   try { const saved = storage().getItem(localeKey); if (['zh', 'en'].includes(saved)) return saved; } catch { /* Use the browser language when storage is unavailable. */ }

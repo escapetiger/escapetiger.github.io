@@ -182,12 +182,13 @@ export class GitHub {
   async snapshot() {
     const ref = await this.request(`git/ref/heads/${this.branch}`);
     const cached = await this.readCache?.snapshot(ref.object.sha);
-    if (cached) return cached;
+    if (cached) { this.latestSnapshot = cached; return cached; }
     const commit = await this.request(`git/commits/${ref.object.sha}`);
     const tree = await this.request(`git/trees/${commit.tree.sha}?recursive=1`);
     if (tree.truncated) throw new Error('Repository listing is incomplete. No changes were made.');
     const result = { head: ref.object.sha, tree: commit.tree.sha, files: tree.tree };
     await this.readCache?.saveSnapshot(result);
+    this.latestSnapshot = result;
     return result;
   }
 
@@ -245,6 +246,7 @@ export class GitHub {
     });
     // A non-fast-forward update fails if another device commits in the meantime.
     await this.request(`git/refs/heads/${this.branch}`, 'PATCH', { sha: commit.sha, force: false });
+    this.latestSnapshot = null;
     return { ...prepared, sha: blob.sha, commit: commit.sha };
   }
 }

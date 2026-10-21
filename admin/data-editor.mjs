@@ -50,6 +50,7 @@ export async function saveData(api, kind, records) {
   const tree = await api.request('git/trees', 'POST', { base_tree: state.tree, tree: entries });
   const commit = await api.request('git/commits', 'POST', { message: `Update ${kind} in English and Chinese`, tree: tree.sha, parents: [state.head] });
   await api.request('git/refs/heads/main', 'PATCH', { sha: commit.sha, force: false });
+  api.latestSnapshot = null;
   return { commit: commit.sha, files: entries };
 }
 const labels = {
@@ -61,18 +62,25 @@ const blankEntry = key => key === 'research' ? '' : key === 'talks' ? { title: '
 const draftKey = kind => `yicai-section-backup-v1-${kind}`;
 export class DataEditor {
   constructor({ root, locale, api, notify, published }) {
-    Object.assign(this, { root, locale, api, notify, published }); this.records = null; this.dirty = false; this.backupVersion = null;
+    Object.assign(this, { root, locale, api, notify, published }); this.records = null; this.dirty = false; this.backupVersion = null; this.sessions = new Map();
   }
   text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '添加条目（同步创建中英文条目）' : 'Add entry in both languages', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '修改已备份在此设备，尚未发布。' : 'Backed up on this device; not published.', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布当前 CV / Publications 的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
   async open(kind, reload = false) {
-    if (!reload && this.kind === kind && this.records) { this.render(); return; }
-    const snapshot = await this.api().snapshot(), records = {};
-    for (const lang of ['en', 'zh']) {
+    if (this.kind && this.records) this.sessions.set(this.kind, { records: this.records, dirty: this.dirty, backupVersion: this.backupVersion });
+    const client = this.api(), saved = this.sessions.get(kind), inventory = client.latestSnapshot;
+    const current = saved && (!inventory || ['en', 'zh'].every(lang =>
+      inventory.files.some(file => file.path === saved.records[lang].path && file.sha === saved.records[lang].sha)));
+    if (!reload && saved && (saved.dirty || current)) {
+      this.kind = kind; Object.assign(this, saved); this.render(); return;
+    }
+    const snapshot = !reload && inventory ? inventory : await client.snapshot();
+    const pair = await Promise.all(['en', 'zh'].map(async lang => {
       const path = dataPath(kind, lang), file = snapshot.files.find(file => file.path === path && file.mode === '100644');
       if (!file) throw new Error(`Missing ${path}`);
-      const text = await this.api().read(file.sha);
-      records[lang] = { path, sha: file.sha, text, value: parseData(kind, text) };
-    }
+      const text = await client.read(file.sha);
+      return [lang, { path, sha: file.sha, text, value: parseData(kind, text) }];
+    }));
+    const records = Object.fromEntries(pair);
     this.kind = kind; this.records = records; this.dirty = false;
     try { this.backupVersion = localStorage.getItem(draftKey(kind)); } catch { this.backupVersion = null; }
     if (!reload) {
@@ -183,5 +191,5 @@ export class DataEditor {
     try { if (localStorage.getItem(draftKey(this.kind)) === this.backupVersion) { localStorage.removeItem(draftKey(this.kind)); this.backupVersion = null; } } catch { /* The remote commit remains authoritative. */ }
     this.published({ ...result, kind: this.kind });
   }
-  clear() { this.records = null; this.kind = null; this.dirty = false; this.root.replaceChildren(); }
+  clear() { this.sessions.clear(); this.records = null; this.kind = null; this.dirty = false; this.root.replaceChildren(); }
 }
