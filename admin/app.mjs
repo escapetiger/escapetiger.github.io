@@ -49,7 +49,7 @@ async function openSection(next, push = true) {
   await run(async () => {
     if (!await mayReplace()) return;
     if (dataEditor.dirty && !dataEditor.backup()) return;
-    if (next !== 'blog') await dataEditor.open(next);
+    if (next !== 'blog') { ++hydrationEpoch; await dataEditor.open(next); }
     section = next; renderNavigation(); setView(next === 'blog' ? 'library' : 'data', push);
   });
 }
@@ -66,6 +66,7 @@ function setView(next, push = true) {
   if (next === 'editor' && !documentText) next = 'library';
   if (next === 'result' && !pending) next = 'library';
   view = next;
+  if (next !== 'library') ++hydrationEpoch;
   if (['library', 'editor', 'new', 'backups'].includes(next)) section = 'blog';
   if (next === 'result') section = pending?.kind || 'blog';
   renderNavigation();
@@ -320,6 +321,7 @@ async function openArticle(file) {
   if (file.path === originalPath && documentText && dirty) { setView('editor'); return; }
   if (!await mayReplace()) return;
   await run(async () => {
+    ++hydrationEpoch;
     const entry = await readArticle(api, file);
     cache.set(file.sha, entry);
     await showEditor(file.path, entry.text, file.path, file.sha);
