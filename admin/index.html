@@ -12,15 +12,12 @@
   <title>Blog Editor · Yi Cai</title>
   <link rel="icon" href="/favicon/favicon.ico">
   <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
-  <script src="appearance.js?v=7"></script>
-  <link rel="stylesheet" href="vendor/wenkai/font.css">
+  <script src="appearance.js?v=9"></script>
+  <link id="editor-fonts" rel="stylesheet" href="vendor/wenkai/font.css" media="print">
   <link rel="stylesheet" href="site.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=8">
+  <link rel="stylesheet" href="admin.css?v=9">
   <script src="vendor/js-yaml.min.js" defer></script>
-  <script src="vendor/markdown-it.min.js" defer></script>
-  <script src="vendor/purify.min.js" defer></script>
-  <script src="vendor/katex/katex.min.js" defer></script>
-  <script src="app.mjs?v=8" type="module"></script>
+  <script src="app.mjs?v=9" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
@@ -42,7 +39,7 @@
                         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg></button><span class="nav-sep" aria-hidden="true">|</span><button id="locale" class="quiet language-toggle" type="button" aria-label="Switch language">En</button></div></div>
-    <nav class="section-menu" aria-label="Edit section"><button type="button" data-section="cv">CV</button><button type="button" data-section="publications">Publications</button><button type="button" data-section="blog" aria-current="page">Blog</button></nav>
+    <nav class="section-menu" aria-label="Edit section"><button type="button" data-section="cv" data-i18n="navCV">CV</button><button type="button" data-section="publications" data-i18n="navPublications">Publications</button><button type="button" data-section="blog" data-i18n="navBlog" aria-current="page">Blog</button></nav>
   </header>
   <main>
     <section id="login-view" class="view login-view">
@@ -123,7 +120,7 @@
           <label class="sr-only" for="source" data-i18n="body"></label>
           <textarea id="source" spellcheck="false" autocapitalize="none" autocomplete="off" autocorrect="off"></textarea>
         </div>
-        <div id="preview-panel" class="preview-panel" data-panel="preview" hidden><p class="hint preview-hint" data-i18n="previewHelp"></p><iframe id="preview-frame" title="Article preview" sandbox="allow-same-origin" src="preview.html?v=6"></iframe></div>
+        <div id="preview-panel" class="preview-panel" data-panel="preview" hidden><p class="hint preview-hint" data-i18n="previewHelp"></p><p id="preview-loading" class="hint preview-hint" role="status" data-i18n="previewLoading" hidden></p><iframe id="preview-frame" title="Article preview" sandbox="allow-same-origin" data-src="preview.html?v=6"></iframe></div>
         <div id="info-panel" class="form-panel" data-panel="info" hidden>
           <label for="title" data-i18n="title"></label><input id="title" required>
           <label for="date" data-i18n="date"></label><input id="date" type="date">

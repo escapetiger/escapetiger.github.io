@@ -1,5 +1,5 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { postPath } from './core.mjs?v=3';
+import { postPath } from './core.mjs?v=9';
 export const LEGACY_BACKUP_KEY = 'yicai-blog-editor-backup-v1';
 export function backupRecord(input) {
   postPath(input.path);

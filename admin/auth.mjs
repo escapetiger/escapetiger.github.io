@@ -1,5 +1,5 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { GitHub } from './core.mjs?v=3';
+import { GitHub } from './core.mjs?v=9';
 export const siteOrigin = 'https://escapetiger.github.io';
 export async function authRequest(path, options = {}, fetcher = globalThis.fetch) {
   const response = await fetcher(`/admin/auth/${path}`, { ...options, credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(25000) });

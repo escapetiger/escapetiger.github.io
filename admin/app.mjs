@@ -1,13 +1,15 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=3';
+import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=9';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=6';
-import { BackupStore } from './backups.mjs?v=3';
-import { drawBackups } from './backup-ui.mjs?v=3';
-import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=3';
+import { messages } from './messages.mjs?v=9';
+import { BackupStore } from './backups.mjs?v=9';
+import { drawBackups } from './backup-ui.mjs?v=9';
+import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
 import { renderPreview } from './preview.mjs?v=6';
-import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=5';
-import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=6';
+import { RepositoryCache } from './read-cache.mjs?v=9';
+import { loadPreview } from './preview-loader.mjs?v=9';
+import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=9';
+import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=9';
 import { Credentials } from './credentials.mjs?v=4';
 
 import { DataEditor, dataPath } from './data-editor.mjs?v=7';
@@ -18,11 +20,11 @@ const pendingKey = 'yicai-blog-publication-v1', backups = new BackupStore();
 const sourceRepo = 'https://github.com/escapetiger/hugo-yicai';
 let locale = preferredLocale(navigator.language);
 let authMode = 'token', accountLogin = '';
-let api, files = [], cache = new Map(), libraryEpoch = 0, view = 'login', tab = 'body';
+let api, files = [], cache = new Map(), libraryEpoch = 0, hydrationEpoch = 0, listing = false, view = 'login', tab = 'body';
 let documentText = '', originalPath = null, originalSha = null, savedState = 'draft', dirty = false, busy = false;
 let pending = null, progressState = { stage: 'queued' }, pollTimer, checking = false, pollEpoch = 0;
 let backupSession = null, assets = [], backupTimer, backupQueue = Promise.resolve(), backupsReturn = 'library';
-let imageSelection = { start: 0, end: 0 }, objectURLs = new Map();
+let imageSelection = { start: 0, end: 0 }, objectURLs = new Map(), libraryFrame = 0;
 const t = key => messages[locale][key];
 let section = 'blog';
 const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify: notice,
@@ -35,7 +37,9 @@ const dataEditor = new DataEditor({ root: $('data-content'), locale: () => local
   }
 });
 function renderNavigation() {
+  document.querySelector('.section-menu').setAttribute('aria-label', locale === 'zh' ? '编辑栏目' : 'Edit section');
   document.querySelectorAll('[data-section]').forEach(button => {
+    button.textContent = t({ cv: 'navCV', publications: 'navPublications', blog: 'navBlog' }[button.dataset.section]);
     const active = button.dataset.section === section;
     if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
   });
@@ -77,6 +81,7 @@ function setView(next, push = true) {
   else history.replaceState(state, '', `#${next}`);
   if (next !== 'editor') window.scrollTo(0, 0);
   updateViewport();
+  if (next === 'library' && api) void hydrate(api);
 }
 async function run(task) {
   if (busy) return;
@@ -89,7 +94,7 @@ async function run(task) {
 function setBusy(value) {
   // Keep export available even when a network request is pending.
   document.querySelectorAll('button, input, select, textarea').forEach(node => {
-    if (!['export', 'data-export'].includes(node.id)) node.disabled = value;
+    if (!['export', 'data-export', 'locale', 'theme-toggle'].includes(node.id)) node.disabled = value;
   });
   document.querySelectorAll('.view').forEach(node => node.setAttribute('aria-busy', String(value && !node.hidden)));
 }
@@ -120,6 +125,7 @@ async function flushBackup(checkpoint = false) {
 }
 function changed() { dirty = true; if (backupSession) { backupSession.touched = true; backupSession.suppressed = false; } backup(); }
 function renderLocale() {
+  if (api instanceof SessionGitHub) api.expiredMessage = t('sessionExpired');
   document.documentElement.lang = locale; $('locale').textContent = locale === 'zh' ? 'En' : 'Zh';
   $('locale').setAttribute('aria-label', locale === 'zh' ? 'Switch to English' : '切换为中文');
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
@@ -134,6 +140,8 @@ function renderLocale() {
   if (tab === 'preview') updatePreview();
   if (view === 'backups') void showBackups();
   if (view === 'data') dataEditor.render();
+  renderNavigation();
+  if (busy) setBusy(true);
 }
 function renderLibraryFilters() {
   const posts = files.filter(file => articleLanguage(file.path) === locale).map(file => cache.get(file.sha)?.post?.metadata || {});
@@ -181,11 +189,11 @@ function renderCards() {
     card.addEventListener('click', () => openArticle(file)); return card;
   });
   if (!cards.length) {
-    const empty = document.createElement('p'); empty.className = 'muted'; empty.textContent = t('noArticles'); cards.push(empty);
+    const empty = document.createElement('p'); empty.className = 'muted'; empty.textContent = t(listing ? 'loading' : 'noArticles'); cards.push(empty);
   }
   $('articles').replaceChildren(...cards);
   const missing = files.some(file => articleLanguage(file.path) === locale && !cache.has(file.sha));
-  $('library-count').textContent = `${filtered.length} ${t('articlesUnit')}${missing ? ` · ${t('loading')}` : ''}`;
+  $('library-count').textContent = listing && !files.length ? t('loading') : `${filtered.length} ${t('articlesUnit')}${missing ? ` · ${t('loading')}` : ''}`;
 }
 async function readArticle(client, file) {
   const existing = cache.get(file.sha);
@@ -196,28 +204,36 @@ async function readArticle(client, file) {
   catch (error) { return { text, error: error.message }; }
   return { text, post };
 }
-async function hydrate(client, epoch) {
-  const unloaded = files.filter(file => !cache.has(file.sha));
+function scheduleLibraryRender() {
+  if (libraryFrame) return;
+  libraryFrame = requestAnimationFrame(() => { libraryFrame = 0; renderLibraryFilters(); renderCards(); });
+}
+async function hydrate(client) {
+  const epoch = ++hydrationEpoch, language = locale;
+  const unloaded = files.filter(file => articleLanguage(file.path) === language && (!cache.has(file.sha) || cache.get(file.sha).error));
   for (let i = 0; i < unloaded.length; i += 3) {
-    if (client !== api || epoch !== libraryEpoch) return;
-    const group = unloaded.slice(i, i + 3);
-    const results = await Promise.allSettled(group.map(file => readArticle(client, file)));
-    if (client !== api || epoch !== libraryEpoch) return;
-    results.forEach((result, index) => cache.set(group[index].sha,
-      result.status === 'fulfilled' ? result.value : { error: result.reason.message }));
-    renderLibraryFilters(); renderCards();
+    if (client !== api || epoch !== hydrationEpoch) return;
+    await Promise.all(unloaded.slice(i, i + 3).map(async file => {
+      let entry;
+      try { entry = await readArticle(client, file); } catch (error) { entry = { error: error.message }; }
+      if (client !== api || epoch !== hydrationEpoch) return;
+      cache.set(file.sha, entry); scheduleLibraryRender();
+    }));
   }
 }
 async function refresh() {
   const client = api, epoch = ++libraryEpoch;
-  const snapshot = await client.snapshot();
-  if (client !== api || epoch !== libraryEpoch) return;
-  files = snapshot.files.filter(file => {
-    try { postPath(file.path); return file.type === 'blob' && file.mode === '100644'; }
-    catch { return false; }
-  }).sort((a, b) => a.path.localeCompare(b.path));
-  renderLibraryFilters(); renderCards();
-  void hydrate(client, epoch);
+  listing = true; renderCards();
+  try {
+    const snapshot = await client.snapshot();
+    if (client !== api || epoch !== libraryEpoch) return;
+    files = snapshot.files.filter(file => {
+      try { postPath(file.path); return file.type === 'blob' && file.mode === '100644'; }
+      catch { return false; }
+    }).sort((a, b) => a.path.localeCompare(b.path));
+    renderLibraryFilters(); renderCards();
+    if (view === 'library') void hydrate(client);
+  } finally { if (client === api && epoch === libraryEpoch) { listing = false; renderCards(); } }
 }
 function renderEditorHeading() {
   let title;
@@ -337,13 +353,18 @@ function updateImageTray() {
   });
   $('image-tray').replaceChildren(label, ...thumbs);
 }
-function updatePreview() {
+async function updatePreview() {
   try {
+    const frame = $('preview-frame');
+    frame.setAttribute('aria-busy', 'true'); if ($('preview-loading')) $('preview-loading').hidden = false;
+    await loadPreview(frame);
+    if (tab !== 'preview' || !documentText) return;
     const post = readPost(documentText), path = $('path').value.replace(/^(content\/blog\/(en|zh)\/)drafts\//, '$1');
     const base = new URL(articleURL(path, post.metadata) || '/', siteOrigin).href;
     const images = new Map(activeAssets().map(asset => [new URL(asset.url, siteOrigin).href, localImageURL(asset)]));
     renderPreview($('preview-frame'), { body: post.body, title: post.metadata.title || '', details: $('editor-meta').textContent, base, images, locale });
   } catch (error) { notice(`${t('error')}${error.message}`, true); }
+  finally { $('preview-frame').setAttribute('aria-busy', 'false'); if ($('preview-loading')) $('preview-loading').hidden = true; }
 }
 async function showBackups() {
   if (view !== 'backups') { backupsReturn = view === 'editor' ? 'editor' : 'library'; await flushBackup(true); setView('backups'); }
@@ -537,6 +558,7 @@ $('locale').addEventListener('click', () => {
   try { localStorage.setItem(localeKey, locale); } catch { /* The selected language still applies to this page. */ }
   for (const id of ['search', 'filter-category', 'filter-tag', 'filter-year']) $(id).value = '';
   renderLocale();
+  if (api && view === 'library') void hydrate(api);
 });
 document.querySelectorAll('[data-section]').forEach(button => button.addEventListener('click', () => void openSection(button.dataset.section)));
 $('data-export').addEventListener('click', () => dataEditor.export());
@@ -553,7 +575,7 @@ function renderConnection() {
 async function connect(token, remember, automatic = false) {
   await run(async () => {
     if (automatic) notice(t('autoConnecting'));
-    api = new GitHub(token); $('token').value = '';
+    api = new GitHub(token); api.readCache = new RepositoryCache(); $('token').value = '';
     try { await refresh(); } catch (error) {
       api.token = ''; api = null; ++libraryEpoch; files = []; cache.clear();
       if (error.status === 401) {
@@ -642,7 +664,7 @@ function syncPreviewTheme() {
   if (root) root.dataset.theme = document.documentElement.dataset.theme;
 }
 window.addEventListener('editor-theme-change', syncPreviewTheme);
-$('preview-frame').addEventListener('load', () => { syncPreviewTheme(); if (tab === 'preview' && documentText) updatePreview(); });
+$('preview-frame').addEventListener('load', syncPreviewTheme);
 for (const button of document.querySelectorAll('[data-insert]')) {
   button.addEventListener('pointerdown', event => event.preventDefault());
   button.addEventListener('click', () => {
@@ -671,7 +693,7 @@ $('logout').addEventListener('click', async () => {
     catch { notice(t('signOutFailed'), true); return; }
   }
   ++libraryEpoch; ++pollEpoch; clearTimeout(pollTimer);
-  if (api) api.token = ''; api = null; accountLogin = '';
+  if (api) { await api.readCache?.clear(); api.token = ''; } api = null; accountLogin = '';
   files = []; cache.clear(); documentText = ''; originalPath = null; originalSha = null;
   $('source').value = ''; $('raw-source').value = ''; $('path').value = '';
   dirty = false; pending = null; dataEditor.clear(); section = 'blog'; renderNavigation();
@@ -719,8 +741,8 @@ async function initializeLogin() {
       let session;
       try { session = await authRequest('session'); }
       catch (error) { if (error.status === 401) return; throw error; }
-      api = new SessionGitHub(session, t('sessionExpired')); accountLogin = session.login;
-      try { await refresh(); await connected(); }
+      api = new SessionGitHub(session, t('sessionExpired')); api.readCache = new RepositoryCache(); accountLogin = session.login;
+      try { listing = true; await connected(); await refresh(); }
       catch (error) { api = null; accountLogin = ''; throw error; }
     }
   });

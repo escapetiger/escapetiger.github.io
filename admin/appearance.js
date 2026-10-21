@@ -8,6 +8,10 @@
     window.dispatchEvent(new Event('editor-theme-change'));
   };
   apply(); system.addEventListener('change', apply);
+  // Show usable controls before the optional font stylesheet finishes downloading.
+  window.addEventListener('DOMContentLoaded', () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    const fonts = document.getElementById('editor-fonts'); if (fonts) fonts.media = 'all';
+  })), { once: true });
   window.addEventListener('storage', event => { if (event.key === 'pref-theme') { preference = event.newValue; apply(); } });
   document.addEventListener('click', event => {
     if (!event.target.closest('[data-theme-toggle]')) return;

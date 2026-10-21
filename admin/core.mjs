@@ -135,6 +135,7 @@ export class GitHub {
     this.repo = 'escapetiger/hugo-yicai';
     this.branch = 'main';
     this.publicCache = new Map();
+    this.blobReads = new Map();
   }
 
   async request(path, method = 'GET', data) {
@@ -180,17 +181,31 @@ export class GitHub {
 
   async snapshot() {
     const ref = await this.request(`git/ref/heads/${this.branch}`);
+    const cached = await this.readCache?.snapshot(ref.object.sha);
+    if (cached) return cached;
     const commit = await this.request(`git/commits/${ref.object.sha}`);
     const tree = await this.request(`git/trees/${commit.tree.sha}?recursive=1`);
     if (tree.truncated) throw new Error('Repository listing is incomplete. No changes were made.');
-    return { head: ref.object.sha, tree: commit.tree.sha, files: tree.tree };
+    const result = { head: ref.object.sha, tree: commit.tree.sha, files: tree.tree };
+    await this.readCache?.saveSnapshot(result);
+    return result;
   }
 
   async read(sha) {
+    if (this.blobReads.has(sha)) return this.blobReads.get(sha);
+    const task = this.readBlob(sha); this.blobReads.set(sha, task);
+    try { return await task; } finally { this.blobReads.delete(sha); }
+  }
+
+  async readBlob(sha) {
+    const cached = await this.readCache?.get('blob', sha);
+    if (typeof cached === 'string') return cached;
     const blob = await this.request(`git/blobs/${sha}`);
     if (blob.encoding !== 'base64') throw new Error('Unsupported file encoding.');
-    return new TextDecoder('utf-8', { fatal: true }).decode(
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(
       Uint8Array.from(atob(blob.content.replace(/\s/g, '')), c => c.charCodeAt(0)));
+    await this.readCache?.put('blob', sha, text);
+    return text;
   }
 
   async save({ originalPath, originalSha, path, text, action, images = [] }) {

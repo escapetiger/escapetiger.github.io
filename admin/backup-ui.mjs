@@ -1,5 +1,5 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { readPost } from './core.mjs?v=3';
+import { readPost } from './core.mjs?v=9';
 export function drawBackups(container, records, { t, locale, restore, remove, download, image }) {
   const date = value => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
   const nodes = records.map(record => {

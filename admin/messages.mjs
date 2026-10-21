@@ -1,6 +1,7 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 export const messages = {
   zh: {
+    previewLoading: '正在载入预览…', navCV: '简历', navPublications: '论文', navBlog: '博客',
     notebook: '我的笔记', toggleTheme: '切换明暗主题', allCategories: '全部分类', allTags: '全部标签', allYears: '全部年份', publicationYear: '文章年份',
     undated: '日期未设置', uncategorized: '未分类', noTags: '未设置', editArticle: '编辑文章',
     githubLogin: '使用 GitHub 登录', githubLoginHelp: '使用你的 GitHub 账号，继续编辑和发布文章。',
@@ -64,6 +65,7 @@ export const messages = {
     articlesUnit: '篇文章', emptyTitle: '未命名文章'
   },
   en: {
+    previewLoading: 'Loading preview…', navCV: 'CV', navPublications: 'Publications', navBlog: 'Blog',
     notebook: 'MY NOTEBOOK', toggleTheme: 'Toggle light and dark theme', allCategories: 'All categories', allTags: 'All tags', allYears: 'All years', publicationYear: 'Article year',
     undated: 'No date set', uncategorized: 'Uncategorized', noTags: 'None', editArticle: 'Edit article',
     githubLogin: 'Sign in with GitHub', githubLoginHelp: 'Use your GitHub account to edit and publish articles.',
