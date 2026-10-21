@@ -59,7 +59,7 @@ function setBusy(value) {
 async function mayReplace() { return !dirty || await flushBackup(true) || confirm(t('discard')); }
 function activeAssets() { return assets.filter(asset => documentText.includes(asset.url)); }
 function queueBackup(checkpoint = false) {
-  if (!documentText || !backupSession || (!dirty && !backupSession.touched)) return Promise.resolve();
+  if (!documentText || !backupSession || (backupSession.suppressed && !backupSession.touched) || (!dirty && !backupSession.touched)) return Promise.resolve();
   const session = backupSession, images = activeAssets();
   const record = { id: session.id, path: $('path').value, text: documentText, originalPath, originalSha, savedState, dirty,
     assets: images.map(({ path, url, name, uploaded }) => ({ path, url, name, uploaded })) };
@@ -81,7 +81,7 @@ async function flushBackup(checkpoint = false) {
   clearTimeout(backupTimer);
   try { await queueBackup(checkpoint); return true; } catch { return false; }
 }
-function changed() { dirty = true; if (backupSession) backupSession.touched = true; backup(); }
+function changed() { dirty = true; if (backupSession) { backupSession.touched = true; backupSession.suppressed = false; } backup(); }
 function renderLocale() {
   document.documentElement.lang = locale; $('locale').value = locale;
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
@@ -309,7 +309,7 @@ async function showBackups() {
         await run(async () => {
           await backupQueue.catch(() => {}); await backups.remove(record.id);
           if (backupSession?.id === record.id) {
-            backupSession = { id: crypto.randomUUID(), revision: 0 }; assets.forEach(asset => { asset.persisted = false; });
+            backupSession = { id: crypto.randomUUID(), revision: 0, suppressed: true }; assets.forEach(asset => { asset.persisted = false; });
           }
           await showBackups();
         });
@@ -341,7 +341,7 @@ async function chooseImages(event) {
     const markup = prepared.map(asset => `![${asset.name.replace(/\.[^.]+$/, '').replace(/[\[\]\\\n\r]/g, '')}](${asset.url})`).join('\n\n');
     const insert = `\n\n${markup}\n\n`;
     documentText = updatePost(documentText, {}, body.slice(0, start) + insert + body.slice(end));
-    assets.push(...prepared); dirty = true; fillFields(); updateImageTray();
+    assets.push(...prepared); dirty = true; backupSession.touched = true; backupSession.suppressed = false; fillFields(); updateImageTray();
     $('source').setSelectionRange(start + insert.length, start + insert.length);
     const saved = await flushBackup(true);
     notice(saved ? t('imageHelp') : t('backupFailed'), !saved);
