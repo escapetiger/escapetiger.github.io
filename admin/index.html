@@ -17,9 +17,9 @@
   <script src="ink-click.js?v=14" defer></script>
   <link id="editor-fonts" rel="stylesheet" href="vendor/wenkai/font.css" media="print">
   <link rel="stylesheet" href="site.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=17">
+  <link rel="stylesheet" href="admin.css?v=18">
   <script src="vendor/js-yaml.min.js" defer></script>
-  <script src="app.mjs?v=17" type="module"></script>
+  <script src="app.mjs?v=18" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
@@ -41,7 +41,7 @@
                         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg></button><span class="nav-sep" aria-hidden="true">|</span><button id="locale" class="quiet language-toggle" type="button" aria-label="Switch language">En</button></div></div>
-    <nav class="section-menu" aria-label="Edit section"><button type="button" data-section="cv" data-i18n="navCV">CV</button><button type="button" data-section="publications" data-i18n="navPublications">Publications</button><button type="button" data-section="blog" data-i18n="navBlog">Blog</button></nav>
+
   </header>
   <main>
     <section id="login-view" class="view login-view">
@@ -50,34 +50,11 @@
       <div id="github-login-panel" class="surface" hidden>
         <a id="github-login" class="button primary full" href="/admin/auth/login" data-i18n="githubLogin"></a>
       </div>
-      <button id="login-retry" class="quiet" data-i18n="retryLogin"></button>
-      <form id="login-form" class="surface" hidden>
-        <label for="token" data-i18n="token"></label>
-        <input id="token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" required>
-        <label class="remember-option"><input id="remember-device" type="checkbox"><span data-i18n="rememberDevice"></span></label>
-        <button class="primary full" type="submit" data-i18n="connect"></button>
-        <a class="subtle-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer" data-i18n="createToken"></a>
-      </form>
-      <div id="saved-login" class="saved-login" hidden><button id="retry-saved" data-i18n="retrySaved"></button><button id="forget-saved" class="quiet" data-i18n="forgetSaved"></button></div>
+      <button id="login-retry" hidden class="quiet" data-i18n="retryLogin"></button>
     </section>
-    <section id="home-view" class="view home-view" hidden>
-      <h1 class="sr-only" data-i18n="homeHeading"></h1>
-      <p data-notice role="status" hidden></p>
-      <div class="home-profile">
-        <div class="profile-avatar editable-part"><img id="profile-avatar" width="160" height="160" alt=""><button type="button" class="edit-part" data-edit-profile="image" data-i18n="editAvatar"></button></div>
-        <div class="editable-part"><h2 id="profile-title"></h2><button type="button" class="edit-part" data-edit-profile="title" data-i18n="editName"></button></div>
-        <div class="editable-part"><p id="profile-subtitle"></p><button type="button" class="edit-part" data-edit-profile="subtitle" data-i18n="editMotto"></button></div>
-        <div class="editable-part"><div id="profile-social" class="profile-social"></div><button type="button" class="edit-part" data-edit-profile="social" data-i18n="editLinks"></button></div>
-        <div id="home-dirty" hidden><span class="badge" data-i18n="localEdits"></span><button id="home-publish-quick" type="button" class="quiet" data-i18n="publishHome"></button></div>
-      </div>
-      <div class="profile-page-footer"><span>© <span id="profile-year"></span> <span id="profile-copyright"></span></span><span aria-hidden="true"> · </span><button id="profile-contact" class="quiet" data-edit-profile="contactLabel"></button><span> · Powered by Hugo &amp; PaperMod</span></div>
-      <dialog id="profile-dialog" aria-labelledby="profile-dialog-title">
-        <div class="profile-dialog-heading"><h2 id="profile-dialog-title" data-i18n="homeHeading"></h2><button type="button" id="profile-close" class="quiet" data-i18n="cancel"></button></div>
-        <p data-notice role="status" hidden></p><div id="home-fields"></div>
-        <div class="data-actions"><button type="button" id="home-export" data-i18n="exportHome"></button><button type="button" id="home-reload" data-i18n="refresh"></button><button type="button" id="home-publish" class="primary" data-i18n="publishHome"></button></div>
-      </dialog>
-      <div class="library-footer"><button id="home-resume" data-i18n="resume" hidden></button><button id="home-progress" data-i18n="progress" hidden></button><button id="home-backups" class="quiet" data-i18n="restore"></button></div>
-      <footer class="home-footer"><div><p id="home-connection" class="hint" role="status"></p><button id="home-logout" class="quiet" data-i18n="logout"></button></div><a id="published-site" target="_blank" rel="noopener noreferrer"><span data-i18n="viewPublishedSite"></span> ↗</a></footer>
+    <section id="home-view" class="view" hidden>
+      <p data-notice role="status" hidden></p><div id="home-fields"></div>
+      <div class="data-actions"><button type="button" id="home-export" data-i18n="exportHome"></button><button type="button" id="home-reload" data-i18n="refresh"></button><button type="button" id="home-publish" class="primary" data-i18n="publishHome"></button></div>
     </section>
     <section id="library-view" class="view" hidden>
       <div class="page-heading"><div><h1 data-i18n="heading"></h1></div><button id="new" class="primary" data-i18n="new"></button></div>
@@ -95,11 +72,6 @@
       </div>
       <p id="library-count" class="hint" role="status"></p>
       <div id="articles" class="article-grid"></div>
-      <p id="connection-status" class="hint" role="status"></p>
-      <div class="library-footer">
-        <button id="resume" hidden data-i18n="resume"></button><button id="progress" hidden data-i18n="progress"></button>
-        <button id="restore" class="quiet" data-i18n="restore"></button><button id="logout" class="quiet" data-i18n="logout"></button>
-      </div>
     </section>
     <section id="data-view" class="view" hidden>
       <p data-notice role="status" hidden></p>
@@ -121,7 +93,7 @@
       <div class="editor-topbar">
         <button id="back" class="quiet" data-i18n="back"></button>
         <div class="editor-heading"><strong id="editor-title"></strong><span id="article-state" class="badge"></span><span id="editor-meta" class="editor-meta"></span></div>
-        <details id="more-menu" class="more-menu"><summary data-i18n="more"></summary><div class="menu-panel"><button id="reauth" data-i18n="reauth" hidden></button><button id="export" data-i18n="export"></button><button id="backup-copy" data-i18n="backupCopy"></button><button id="editor-backups" data-i18n="backups"></button><button id="retract" class="danger" data-i18n="retract" hidden></button></div></details>
+        <details id="more-menu" class="more-menu"><summary data-i18n="more"></summary><div class="menu-panel"><button id="reauth" data-i18n="reauth"></button><button id="export" data-i18n="export"></button><button id="backup-copy" data-i18n="backupCopy"></button><button id="editor-backups" data-i18n="backups"></button><button id="retract" class="danger" data-i18n="retract" hidden></button></div></details>
       </div>
       <nav class="editor-tabs" aria-label="Editor"><button type="button" data-tab="body" aria-pressed="true" data-i18n="body"></button><button type="button" data-tab="preview" aria-pressed="false" data-i18n="preview"></button><button type="button" data-tab="info" aria-pressed="false" data-i18n="info"></button><button type="button" data-tab="advanced" aria-pressed="false" data-i18n="advanced"></button></nav>
       <p data-notice class="editor-notice" role="status" hidden></p>

@@ -100,7 +100,8 @@ export class DataEditor {
     if (!reload) {
       try {
         const draft = JSON.parse(this.backupVersion);
-        if (draft && ['en', 'zh'].every(lang => draft[lang]?.path === dataPath(kind, lang) && typeof draft[lang].text === 'string' && /^[0-9a-f]{40}$/.test(draft[lang].sha)) && confirm(this.text('restore'))) {
+        if (draft && ['en', 'zh'].every(lang => draft[lang]?.path === dataPath(kind, lang) && typeof draft[lang].text === 'string' && /^[0-9a-f]{40}$/.test(draft[lang].sha)) &&
+          (['en', 'zh'].every(lang => draft[lang].sha === records[lang].sha) || confirm(this.text('restore')))) {
           // Drafts may contain incomplete entries. Validate the completed pair before publishing.
           for (const lang of ['en', 'zh']) { const record = draft[lang]; record.value = parseData(kind, record.text, true); }
           this.records = draft; this.dirty = true;

@@ -1,7 +1,7 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
+import { newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=17';
+import { messages } from './messages.mjs?v=18';
 import { BackupStore } from './backups.mjs?v=11';
 import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
@@ -10,17 +10,21 @@ import { RepositoryCache } from './read-cache.mjs?v=9';
 import { loadPreview } from './preview-loader.mjs?v=9';
 import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=11';
 import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
-import { profileIcons } from './profile-icons.mjs?v=17';
-import { Credentials } from './credentials.mjs?v=4';
+import { entryFrom, pagePath } from './routes.mjs?v=18';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=17';
+import { DataEditor, dataPath } from './data-editor.mjs?v=18';
 
-const credentials = new Credentials();
+const parameters = new URL(location.href).searchParams;
+const embedded = parameters.get('embedded') === '1' && window.parent !== window;
+const entry = entryFrom(parameters);
+const returnPage = pagePath(parameters.get('return')) || (parameters.has('page') ? entry.page : `/${preferredLocale(navigator.language)}/`);
+const tellParent = message => { if (embedded) window.parent.postMessage(message, location.origin); };
+document.body.dataset.embedded = String(embedded);
+let safeToLeave = false, publishing = false;
 const $ = id => document.getElementById(id);
 const pendingKey = 'yicai-blog-publication-v1', backups = new BackupStore();
 const sourceRepo = 'https://github.com/escapetiger/hugo-yicai';
-let locale = preferredLocale(navigator.language);
-let authMode = 'token', accountLogin = '';
+let locale = embedded || parameters.has('return') ? entry.lang : preferredLocale(navigator.language);
 let api, files = [], cache = new Map(), libraryEpoch = 0, hydrationEpoch = 0, listing = false, view = 'login', tab = 'body';
 let documentText = '', originalPath = null, originalSha = null, savedState = 'draft', dirty = false, busy = false;
 let pending = null, progressState = { stage: 'queued' }, pollTimer, checking = false, pollEpoch = 0;
@@ -32,56 +36,23 @@ function sectionPublished(result) {
   clearTimeout(pollTimer); ++pollEpoch;
   const file = result.files.find(file => file.path === dataPath(result.kind, locale));
   pending = { ...file, files: result.files, kind: result.kind, commit: result.commit, action: 'publish',
-    title: t({ home: 'homeHeading', cv: 'navCV', publications: 'navPublications' }[result.kind]),
+    title: t({ home: 'homeHeading', cv: 'navCV', publications: 'navPublications' }[result.kind]), sourcePage: entry.page,
     url: `/${locale}/${result.kind === 'home' ? '' : `${result.kind}/`}`, started: Date.now() };
-  $('profile-dialog').close(); renderHome();
+  previewHome();
   savePending(); progressState = { stage: 'queued' }; renderProgress(); setView('result'); void checkProgress();
 }
-const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify: notice, published: sectionPublished });
+const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); }, published: sectionPublished });
 const homeEditor = new DataEditor({ root: $('home-fields'), locale: () => locale, api: () => api,
-  notify(message, error) { notice(message, error); renderHome(); }, published: sectionPublished });
-function renderHome() {
-  $('home-resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
-  $('home-progress').hidden = !pending;
-  $('published-site').href = `${siteOrigin}/${locale}/`;
-  $('profile-year').textContent = new Date().getFullYear();
+  notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); previewHome(); }, published: sectionPublished });
+function previewHome() {
   const profile = homeEditor.records?.[locale]?.value;
-  if (!profile) return;
-  $('profile-title').textContent = profile.title;
-  $('profile-subtitle').textContent = profile.subtitle;
-  $('profile-copyright').textContent = profile.title;
-  $('profile-contact').textContent = profile.contactLabel;
-  $('brand-label').textContent = profile.title;
-  $('editor-home').title = profile.title;
-  $('profile-avatar').alt = profile.imageTitle;
-  try {
-    const image = new URL(profile.image, siteOrigin);
-    if (/^(https:\/\/|\/(?!\/))/.test(profile.image) && image.protocol === 'https:' && !image.username && !image.password && $('profile-avatar').src !== image.href) $('profile-avatar').src = image.href;
-  } catch { /* Keep the last valid avatar while its link is being edited. */ }
-  $('home-dirty').hidden = !homeEditor.dirty;
-  $('profile-social').replaceChildren(...profile.social.map((link, index) => {
-    const button = document.createElement('button'); button.type = 'button'; button.className = 'quiet';
-    button.innerHTML = profileIcons[link.name] || '';
-    button.title = `${t('editLinks')} · ${link.name}`; button.setAttribute('aria-label', button.title);
-    button.addEventListener('click', () => editProfile(`social.${index}.url`)); return button;
-  }));
+  if (profile) tellParent({ type: 'editor-preview', value: profile });
 }
 async function openHome(push = true) {
   if (!api) { setView('login', push); return; }
   await run(async () => {
     if (!await mayReplace() || (dataEditor.dirty && !dataEditor.backup()) || (homeEditor.dirty && !homeEditor.backup())) return;
     setView('home', push);
-  });
-}
-function renderNavigation() {
-  $('editor-home').setAttribute('aria-label', t('homeHeading'));
-  if (section === 'home') $('editor-home').setAttribute('aria-current', 'page');
-  else $('editor-home').removeAttribute('aria-current');
-  document.querySelector('.section-menu').setAttribute('aria-label', locale === 'zh' ? '编辑栏目' : 'Edit section');
-  document.querySelectorAll('[data-section]').forEach(button => {
-    button.textContent = t({ cv: 'navCV', publications: 'navPublications', blog: 'navBlog' }[button.dataset.section]);
-    const active = button.dataset.section === section;
-    if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
   });
 }
 async function openSection(next, push = true) {
@@ -93,7 +64,7 @@ async function openSection(next, push = true) {
       ++hydrationEpoch; notice(`${t('loading')} ${t(next === 'cv' ? 'navCV' : 'navPublications')}`);
       await dataEditor.open(next);
     }
-    section = next; renderNavigation(); setView(next === 'blog' ? 'library' : 'data', push);
+    section = next; setView(next === 'blog' ? 'library' : 'data', push);
   });
 }
 
@@ -113,18 +84,18 @@ function setView(next, push = true) {
   if (['library', 'editor', 'new', 'backups'].includes(next)) section = 'blog';
   if (next === 'result') section = pending?.kind || 'blog';
   if (['home', 'login'].includes(next)) section = next;
-  renderHome();
-  renderNavigation();
+  previewHome();
+
   document.body.dataset.view = next;
   if (next === 'editor') window.scrollTo(0, 0);
   document.querySelectorAll('.view').forEach(node => { node.hidden = node.id !== `${next}-view`; });
-  $('resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
-  $('progress').hidden = !pending;
   $('more-menu').open = false;
   notice();
   const state = { editorView: next, section };
-  if (push) history.pushState(state, '', `#${next}`);
-  else history.replaceState(state, '', `#${next}`);
+  if (!embedded) {
+    if (push) history.pushState(state, '', `#${next}`);
+    else history.replaceState(state, '', `#${next}`);
+  }
   if (next !== 'editor') window.scrollTo(0, 0);
   updateViewport();
   if (next === 'library' && api) void hydrate(api);
@@ -134,8 +105,8 @@ async function run(task) {
   busy = true;
   setBusy(true);
   notice();
-  try { await task(); } catch (error) { notice(`${t('error')}${error.message}`, true); }
-  finally { busy = false; setBusy(false); }
+  try { await task(); } catch (error) { notice(`${t('error')}${error.message}`, true); if (error.status === 401) tellParent({ type: 'editor-login' }); }
+  finally { busy = false; publishing = false; setBusy(false); }
 }
 function setBusy(value) {
   $('editor-home').setAttribute('aria-disabled', String(value));
@@ -170,7 +141,7 @@ async function flushBackup(checkpoint = false) {
   clearTimeout(backupTimer);
   try { await queueBackup(checkpoint); return true; } catch { return false; }
 }
-function changed() { dirty = true; if (backupSession) { backupSession.touched = true; backupSession.suppressed = false; } backup(); }
+function changed() { safeToLeave = false; dirty = true; if (backupSession) { backupSession.touched = true; backupSession.suppressed = false; } backup(); }
 function renderLocale() {
   if (api instanceof SessionGitHub) api.expiredMessage = t('sessionExpired');
   document.documentElement.lang = locale; $('locale').textContent = locale === 'zh' ? 'En' : 'Zh';
@@ -180,14 +151,13 @@ function renderLocale() {
   renderLibraryFilters(); renderCards(); renderEditorHeading(); renderProgress();
   $('theme-toggle').setAttribute('aria-label', t('toggleTheme'));
   $('theme-toggle').title = t('toggleTheme');
-  $('resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
   $('preview-frame').title = t('preview');
-  renderConnection(); renderHome();
+  previewHome();
   if (tab === 'preview') updatePreview();
   if (view === 'backups') void showBackups();
   if (view === 'data') dataEditor.render();
-  if ($('profile-dialog').open) homeEditor.render();
-  renderNavigation();
+  if (view === 'home') homeEditor.render();
+
   if (busy) setBusy(true);
 }
 function renderLibraryFilters() {
@@ -348,11 +318,13 @@ async function showEditor(path, text, loadedPath, sha, state, context) {
       if (image?.blob) assets.push({ ...asset, blob: image.blob, persisted: true });
     }
   }
+  const recovered = !context && existing?.dirty && existing.originalPath === loadedPath && existing.originalSha === sha && articleLanguage(existing.path) === locale ? existing : null;
+  if (recovered) { path = recovered.path; text = recovered.text; state = recovered.savedState; }
   documentText = text; originalPath = loadedPath; originalSha = sha;
   $('path').value = path;
   try { savedState = state || articleState(loadedPath || path, readPost(text).metadata); }
   catch { savedState = state || (path.split('/')[3] === 'drafts' ? 'draft' : 'public'); }
-  dirty = false;
+  dirty = Boolean(recovered);
   $('backup-status').textContent = t('localOnly');
   setView('editor');
   tab = 'body';
@@ -361,7 +333,7 @@ async function showEditor(path, text, loadedPath, sha, state, context) {
   }
   renderEditorHeading();
   updateImageTray();
-  if (existing?.dirty && existing.text !== text) notice(t('backupAvailable'));
+  if (!recovered && existing?.dirty && existing.text !== text) notice(t('backupAvailable'));
 }
 async function openArticle(file) {
   if (file.path === originalPath && documentText && dirty) { setView('editor'); return; }
@@ -513,6 +485,7 @@ function renderProgress() {
   if (pending.kind) $('view-article').textContent = locale === 'zh' ? '查看正式页面' : 'View published page';
   else $('view-article').textContent = t('viewArticle');
   if (stage === 'live') {
+    tellParent({ type: 'editor-published', commit: pending.commit, url: progressState.url, page: pending.sourcePage });
     const url = new URL(progressState.url, siteOrigin);
     url.searchParams.set('published', pending.commit.slice(0, 7));
     $('view-article').href = url.href;
@@ -575,6 +548,7 @@ async function save(action, retract = false) {
     try {
       await flushBackup(true);
       const images = await Promise.all(activeAssets().filter(asset => !asset.uploaded).map(encodedImage));
+      publishing = true;
       result = await api.save({ originalPath, originalSha, path: $('path').value.trim(), text: documentText, action, images });
     } catch (error) {
       backup(); throw new Error(`${error.message}\n${t('unknownSave')}`);
@@ -587,7 +561,7 @@ async function save(action, retract = false) {
     cache.set(result.sha, { text: result.text, post });
     clearTimeout(pollTimer); ++pollEpoch;
     pending = { path: result.path, sha: result.sha, commit: result.commit, action,
-      title: post.metadata.title, url: action === 'publish' ? articleURL(result.path, post.metadata) : null, started: Date.now() };
+      title: post.metadata.title, sourcePage: entry.page, url: action === 'publish' ? articleURL(result.path, post.metadata) : null, started: Date.now() };
     savePending(); progressState = { stage: 'queued' }; renderProgress(); setView('result');
     // The successful commit must remain successful even if refreshing the list fails.
     try { await refresh(); } catch { /* The list can be refreshed independently. */ }
@@ -610,81 +584,35 @@ $('locale').addEventListener('click', () => {
   renderLocale();
   if (api && view === 'library') void hydrate(api);
 });
-$('editor-home').addEventListener('click', event => { event.preventDefault(); if (!busy) void openHome(); });
-function editProfile(field) {
-  if (busy || !homeEditor.records) return;
-  homeEditor.render();
-  const input = $('home-fields').querySelector(field === 'social' ? '[data-field^="social."]' : `[data-field="${field}"]`);
-  for (let group = input?.closest('details'); group; group = group.parentElement.closest('details')) group.open = true;
-  if (field === 'social') $('home-fields').querySelector('[data-group="social"]').open = true;
-  $('profile-dialog').showModal();
-  input?.focus(); input?.scrollIntoView({ block: 'nearest' });
-}
-document.querySelectorAll('[data-edit-profile]').forEach(button => button.addEventListener('click', () => editProfile(button.dataset.editProfile)));
-$('profile-close').addEventListener('click', () => { if (homeEditor.backup()) $('profile-dialog').close(); });
-$('profile-dialog').addEventListener('cancel', event => { if (busy || !homeEditor.backup()) event.preventDefault(); });
+$('editor-home').href = returnPage;
 $('home-export').addEventListener('click', () => homeEditor.export());
-$('home-reload').addEventListener('click', () => { if (confirm(homeEditor.text('reload'))) void run(async () => { await homeEditor.open('home', true); renderHome(); }); });
-for (const id of ['home-publish', 'home-publish-quick']) $(id).addEventListener('click', () => void run(() => homeEditor.publish()));
-for (const [home, target] of [['home-resume', 'resume'], ['home-progress', 'progress'], ['home-backups', 'restore'], ['home-logout', 'logout']]) {
-  $(home).addEventListener('click', () => $(target).click());
-}
-document.querySelectorAll('[data-section]').forEach(button => button.addEventListener('click', () => void openSection(button.dataset.section)));
+$('home-reload').addEventListener('click', () => { if (confirm(homeEditor.text('reload'))) void run(async () => { await homeEditor.open('home', true); previewHome(); }); });
+$('home-publish').addEventListener('click', () => void run(async () => { publishing = true; await homeEditor.publish(); }));
 $('data-export').addEventListener('click', () => dataEditor.export());
 $('data-reload').addEventListener('click', () => { if (confirm(dataEditor.text('reload'))) void run(async () => { await dataEditor.open(section, true); }); });
-$('data-publish').addEventListener('click', () => void run(() => dataEditor.publish()));
+$('data-publish').addEventListener('click', () => void run(async () => { publishing = true; await dataEditor.publish(); }));
 for (const id of ['search', 'filter-state', 'filter-category', 'filter-tag', 'filter-year']) $(id).addEventListener(id === 'search' ? 'input' : 'change', renderCards);
-function renderConnection() {
-  const remembered = authMode === 'token' && Boolean(credentials.read());
-  $('saved-login').hidden = !remembered;
-  $('reauth').hidden = authMode !== 'github';
-  $('logout').textContent = t(authMode === 'github' ? 'signOut' : 'logout');
-  $('connection-status').textContent = authMode === 'github' ? `${t('signedInAs')} ${accountLogin}` : t(remembered ? 'deviceRemembered' : 'sessionOnly');
-  $('home-connection').textContent = $('connection-status').textContent;
-  $('home-logout').textContent = $('logout').textContent;
-}
-async function connect(token, remember, automatic = false) {
-  await run(async () => {
-    if (automatic) notice(t('autoConnecting'));
-    api = new GitHub(token); api.readCache = new RepositoryCache(); $('token').value = '';
-    try { await refresh(); } catch (error) {
-      api.token = ''; api = null; ++libraryEpoch; files = []; cache.clear();
-      if (error.status === 401) {
-        const cleared = credentials.clear(); renderConnection();
-        throw new Error(t(cleared ? 'tokenExpired' : 'forgetFailed'));
-      }
-      renderConnection();
-      throw error;
-    }
-    const stored = remember ? credentials.save(token) : credentials.clear();
-    await connected();
-    if (!stored) notice(t(remember ? 'rememberFailed' : 'forgetFailed'), true);
-  });
-}
 async function connected() {
-  renderConnection();
-  try { await backups.migrate(); } catch { /* Existing local backups are retained if migration is unavailable. */ }
-  await homeEditor.open('home');
+  try { await backups.migrate(); } catch { /* Retain existing device backups. */ }
   restorePending();
-  section = 'home'; renderNavigation();
-  const active = pending && !terminalStages.has(progressState.stage);
-  setView(active ? 'result' : 'home', false);
-  if (active) { renderProgress(); void checkProgress(true); }
+  if (entry.kind === 'home') {
+    await homeEditor.open('home'); setView('home', false);
+  } else if (entry.kind === 'cv' || entry.kind === 'publications') {
+    await dataEditor.open(entry.kind); section = entry.kind; setView('data', false);
+  } else if (entry.path) {
+    const file = files.find(file => file.path === entry.path);
+    if (!file) throw new Error(t('noArticles'));
+    const record = await readArticle(api, file);
+    await showEditor(file.path, record.text, file.path, file.sha, articleState(file.path, record.post?.metadata));
+  } else setView('library', false);
+  tellParent({ type: 'editor-ready' });
+  if (pending && !terminalStages.has(progressState.stage)) void checkProgress(true);
 }
 $('reauth').addEventListener('click', async () => {
-  if (await mayReplace()) location.assign('/admin/auth/login');
-});
-$('login-form').addEventListener('submit', event => {
-  event.preventDefault();
-  void connect($('token').value.trim(), $('remember-device').checked);
-});
-$('retry-saved').addEventListener('click', () => {
-  const token = credentials.read();
-  if (token) void connect(token, true, true);
-});
-$('forget-saved').addEventListener('click', () => {
-  const cleared = credentials.clear(); $('remember-device').checked = false;
-  renderConnection(); notice(t(cleared ? 'forgotten' : 'forgetFailed'), !cleared);
+  if (await mayReplace()) {
+    if (embedded) tellParent({ type: 'editor-login' });
+    else location.assign(`/admin/auth/login?${new URLSearchParams({ return: returnPage })}`);
+  }
 });
 $('refresh').addEventListener('click', () => run(refresh));
 $('new').addEventListener('click', () => {
@@ -719,8 +647,6 @@ for (const id of ['title', 'date', 'tags', 'categories']) $(id).addEventListener
 $('raw-source').addEventListener('input', () => { documentText = $('raw-source').value; changed(); renderEditorHeading(); });
 $('path').addEventListener('input', changed);
 $('back').addEventListener('click', async () => { await flushBackup(true); setView('library'); });
-$('resume').addEventListener('click', () => setView('editor'));
-$('restore').addEventListener('click', showBackups);
 $('editor-backups').addEventListener('click', showBackups);
 $('backups-refresh').addEventListener('click', showBackups);
 $('backups-back').addEventListener('click', () => setView(backupsReturn));
@@ -751,27 +677,11 @@ $('image-input').addEventListener('change', chooseImages);
 $('save-draft').addEventListener('click', () => save('draft'));
 $('publish').addEventListener('click', () => save('publish'));
 $('retract').addEventListener('click', () => save('draft', true));
-$('progress').addEventListener('click', () => { setView('result'); renderProgress(); void checkProgress(true); });
 $('check-status').addEventListener('click', () => checkProgress(true));
 $('continue-editing').addEventListener('click', () => { if (pending?.kind) { if (pending.kind === 'home') void openHome(); else void openSection(pending.kind); return; } if (documentText) setView('editor'); else void showBackups(); });
-$('result-back').addEventListener('click', () => void openSection('blog'));
+$('result-back').addEventListener('click', () => { if (embedded) tellParent({ type: 'editor-close' }); else void openSection('blog'); });
 $('export').addEventListener('click', () => {
   download(new Blob([documentText], { type: 'text/markdown;charset=utf-8' }), $('path').value.split('/').at(-1) || 'article.md'); $('more-menu').open = false;
-});
-$('logout').addEventListener('click', async () => {
-  if (!await mayReplace() || (dataEditor.dirty && !dataEditor.backup()) || (homeEditor.dirty && !homeEditor.backup())) return;
-  if (authMode === 'github') {
-    try { await api.logout(); }
-    catch { notice(t('signOutFailed'), true); return; }
-  }
-  ++libraryEpoch; ++pollEpoch; clearTimeout(pollTimer);
-  if (api) { await api.readCache?.clear(); api.token = ''; } api = null; accountLogin = '';
-  files = []; cache.clear(); documentText = ''; originalPath = null; originalSha = null;
-  $('source').value = ''; $('raw-source').value = ''; $('path').value = '';
-  dirty = false; pending = null; dataEditor.clear(); homeEditor.clear(); section = 'blog'; renderNavigation();
-  clearTimeout(backupTimer); resetImageURLs(); backupSession = null; assets = [];
-  const cleared = credentials.clear(); $('remember-device').checked = false;
-  renderConnection(); setView('login', false); notice(t(authMode === 'github' ? 'signedOut' : cleared ? 'disconnected' : 'forgetFailed'), authMode === 'token' && !cleared);
 });
 window.addEventListener('popstate', event => {
   const next = event.state?.editorView;
@@ -779,7 +689,7 @@ window.addEventListener('popstate', event => {
   if (next === 'home') { void openHome(false); return; }
   if (['login', 'library', 'editor', 'new', 'result', 'backups', 'data'].includes(next)) setView(api && next === 'login' ? 'home' : next, false);
 });
-window.addEventListener('beforeunload', event => { if (dirty || busy || dataEditor.dirty || homeEditor.dirty) { event.preventDefault(); event.returnValue = ''; } });
+window.addEventListener('beforeunload', event => { if (publishing || !safeToLeave && (dirty || dataEditor.dirty || homeEditor.dirty)) { event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('pagehide', () => { clearTimeout(pollTimer); if (dirty) void flushBackup(true); });
 window.addEventListener('pageshow', () => { updateViewport(); if (api && pending) void checkProgress(true); });
 document.addEventListener('visibilitychange', () => {
@@ -793,35 +703,45 @@ window.addEventListener('resize', updateViewport);
 new ResizeObserver(updateViewport).observe(document.querySelector('.site-header'));
 renderLocale(); setView('login', false);
 async function initializeLogin() {
-  let configuration;
   await run(async () => {
-    const config = configuration = await authConfiguration(); authMode = config.mode;
-    const github = authMode === 'github';
-    $('github-login-panel').hidden = !github && !config.loginURL;
-    $('login-form').hidden = github;
-    $('github-login').href = github ? '/admin/auth/login' : config.loginURL || '#';
-    $('github-login').hidden = github && !config.ready;
-    $('login-retry').hidden = false;
-    renderConnection();
-    if (github) {
-      if (!config.ready) { notice(t('githubNotReady'), true); return; }
-      const errorCode = new URL(location.href).searchParams.get('auth_error');
-      if (errorCode) {
-        const key = { invalid_state: 'loginStateError', cancelled: 'loginCancelled', account_not_allowed: 'accountNotAllowed', installation_required: 'installationRequired' }[errorCode] || 'loginUnavailable';
-        history.replaceState(history.state, '', location.pathname + location.hash);
-        notice(t(key), true); return;
-      }
-      let session;
-      try { session = await authRequest('session'); }
-      catch (error) { if (error.status === 401) return; throw error; }
-      api = new SessionGitHub(session, t('sessionExpired')); api.readCache = new RepositoryCache(); accountLogin = session.login;
-      try { listing = true; await refresh(); await connected(); }
-      catch (error) { api = null; accountLogin = ''; throw error; }
+    const config = await authConfiguration();
+    if (config.mode === 'token') {
+      if (!config.loginURL) throw new Error(t('githubNotReady'));
+      location.replace(new URL(`${returnPage}?mode=edit`, config.loginURL).href); return;
     }
+    if (!config.ready) { notice(t('githubNotReady'), true); return; }
+    $('github-login-panel').hidden = false;
+    $('github-login').href = `/admin/auth/login?${new URLSearchParams({ return: returnPage })}`;
+    const errorCode = new URL(location.href).searchParams.get('auth_error');
+    if (errorCode) {
+      const clean = new URL(location.href); clean.searchParams.delete('auth_error'); history.replaceState(null, '', clean.href);
+      const key = { invalid_state: 'loginStateError', cancelled: 'loginCancelled', account_not_allowed: 'accountNotAllowed', installation_required: 'installationRequired' }[errorCode] || 'loginUnavailable';
+      notice(t(key), true); return;
+    }
+    let session;
+    try { session = await authRequest('session'); }
+    catch (error) { if (error.status === 401) { tellParent({ type: 'editor-login' }); return; } throw error; }
+    if (!embedded) { location.replace(`${returnPage}?mode=edit`); return; }
+    api = new SessionGitHub(session, t('sessionExpired')); api.readCache = new RepositoryCache();
+    try { listing = true; await refresh(); await connected(); }
+    catch (error) { api = null; throw error; }
   });
-  if (!configuration || (authMode === 'token' && !$('github-login-panel').hidden)) return;
-  const token = authMode === 'token' && credentials.read();
-  if (token) void connect(token, true, true);
+  $('login-retry').hidden = view !== 'login';
 }
+window.addEventListener('message', async event => {
+  if (!embedded || event.origin !== location.origin || event.source !== window.parent) return;
+  if (event.data?.type === 'site-appearance') {
+    if (['dark', 'light'].includes(event.data.theme)) {
+      document.documentElement.dataset.theme = event.data.theme;
+      syncPreviewTheme();
+    }
+    previewHome();
+  }
+  if (event.data?.type === 'site-flush') {
+    const saved = await flushBackup(true) && dataEditor.backup() && homeEditor.backup();
+    safeToLeave = saved && !publishing;
+    tellParent({ type: 'editor-flushed', id: event.data.id, ok: safeToLeave });
+  }
+});
 $('login-retry').addEventListener('click', initializeLogin);
 void initializeLogin();

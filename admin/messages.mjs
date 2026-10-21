@@ -61,7 +61,7 @@ export const messages = {
     superseded: '已有更新版本上线',
     unverified: '暂时无法确认上线状态', unverifiedHelp: '源码已保存。可能是网络或查询额度限制，可稍后刷新状态或查看构建日志。',
     timeout: '部署仍待确认', timeoutHelp: '自动查询已暂停。请查看构建日志，或点击刷新状态继续检查。',
-    viewArticle: '查看线上文章', checkStatus: '刷新状态', continueEditing: '继续编辑', resultBack: '返回文章列表',
+    viewArticle: '查看线上文章', checkStatus: '刷新状态', continueEditing: '继续编辑', resultBack: '返回页面',
     localOnly: '编辑自动备份到本机；点击发布后才会更新公开文章。',
     articlesUnit: '篇文章', emptyTitle: '未命名文章'
   },
@@ -126,7 +126,7 @@ export const messages = {
     superseded: 'A newer version is live',
     unverified: 'Unable to confirm deployment', unverifiedHelp: 'Your source was saved. Network access or query limits may prevent checking. Retry later or open the logs.',
     timeout: 'Deployment still unconfirmed', timeoutHelp: 'Automatic checking has paused. Open the build logs or refresh the status to check again.',
-    viewArticle: 'View live article', checkStatus: 'Refresh status', continueEditing: 'Continue editing', resultBack: 'Back to articles',
+    viewArticle: 'View live article', checkStatus: 'Refresh status', continueEditing: 'Continue editing', resultBack: 'Back to page',
     localOnly: 'Edits are backed up on this device. Public articles update only when you publish.',
     articlesUnit: 'articles', emptyTitle: 'Untitled article'
   }

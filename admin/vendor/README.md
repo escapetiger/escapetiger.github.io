@@ -9,11 +9,11 @@ No npm dependencies or package manager are required in the Hugo repository.
 | [markdown-it](https://github.com/markdown-it/markdown-it) | 15.0.3 | markdown-it.min.js | LICENSE.markdown-it (MIT) |
 | [DOMPurify](https://github.com/cure53/DOMPurify) | 3.4.17 | purify.min.js | LICENSE.dompurify (Apache-2.0 option) |
 | [LXGW WenKai Screen](https://github.com/chawyehsu/lxgw-wenkai-webfont) | 1.7.0 | wenkai/font.css and its 97 referenced WOFF2 subsets | wenkai/LICENSE (MIT), wenkai/OFL.txt (font OFL-1.1) |
-| [KaTeX](https://github.com/KaTeX/KaTeX) | 0.19.0 | katex/katex.min.js, CSS and fonts | katex/LICENSE (MIT) |
+| [KaTeX](https://github.com/KaTeX/KaTeX) | 0.19.0 | katex/katex.min.js, auto-render.min.js, CSS and fonts | katex/LICENSE (MIT) |
 
 The new bundles are unmodified files from the official npm distributions:
 `markdown-it/dist/browser/markdown-it.umd.min.js`, `dompurify/dist/purify.min.js`,
-and `katex/dist/katex.min.js`, `katex.min.css`, and `fonts/`. The markdown-it
+and `katex/dist/katex.min.js`, `contrib/auto-render.min.js`, `katex.min.css`, and `fonts/`. The markdown-it
 bundle is renamed locally. js-yaml comes from its upstream 4.1.1 Git tag.
 
 To update, download a pinned release into a temporary directory, review its
