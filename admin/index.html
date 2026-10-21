@@ -15,9 +15,9 @@
   <script src="appearance.js?v=9"></script>
   <link id="editor-fonts" rel="stylesheet" href="vendor/wenkai/font.css" media="print">
   <link rel="stylesheet" href="site.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=12">
+  <link rel="stylesheet" href="admin.css?v=13">
   <script src="vendor/js-yaml.min.js" defer></script>
-  <script src="app.mjs?v=12" type="module"></script>
+  <script src="app.mjs?v=13" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
@@ -43,41 +43,34 @@
   </header>
   <main>
     <section id="login-view" class="view login-view">
-      <p class="eyebrow">YI CAI / BLOG</p>
-      <h1 data-i18n="loginHeading"></h1><p class="muted" data-i18n="loginIntro"></p>
+      <h1 data-i18n="loginHeading"></h1>
       <p data-notice role="status" hidden></p>
       <div id="github-login-panel" class="surface" hidden>
-        <p data-i18n="githubLoginHelp"></p>
         <a id="github-login" class="button primary full" href="/admin/auth/login" data-i18n="githubLogin"></a>
-        <p class="hint" data-i18n="githubSessionHelp"></p>
       </div>
       <button id="login-retry" class="quiet" data-i18n="retryLogin"></button>
       <form id="login-form" class="surface" hidden>
         <label for="token" data-i18n="token"></label>
         <input id="token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" required>
-        <p class="hint" data-i18n="tokenHelp"></p>
-        <label class="remember-option"><input id="remember-device" type="checkbox" aria-describedby="remember-help"><span data-i18n="rememberDevice"></span></label>
-        <p id="remember-help" class="hint" data-i18n="rememberHelp"></p>
+        <label class="remember-option"><input id="remember-device" type="checkbox"><span data-i18n="rememberDevice"></span></label>
         <button class="primary full" type="submit" data-i18n="connect"></button>
         <a class="subtle-link" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener noreferrer" data-i18n="createToken"></a>
       </form>
       <div id="saved-login" class="saved-login" hidden><button id="retry-saved" data-i18n="retrySaved"></button><button id="forget-saved" class="quiet" data-i18n="forgetSaved"></button></div>
     </section>
     <section id="home-view" class="view home-view" hidden>
-      <p class="eyebrow" data-i18n="editorMode"></p>
-      <h1 data-i18n="homeHeading"></h1><p class="muted" data-i18n="homeIntro"></p>
+      <h1 data-i18n="homeHeading"></h1>
       <p data-notice role="status" hidden></p>
       <div class="home-grid">
-        <button type="button" class="home-card" data-open-section="cv"><strong data-i18n="navCV"></strong><span class="muted" data-i18n="homeCV"></span><span class="badge" data-local-edits="cv" data-i18n="localEdits" hidden></span><span class="home-edit"><span data-i18n="homeEdit"></span> →</span></button>
-        <button type="button" class="home-card" data-open-section="publications"><strong data-i18n="navPublications"></strong><span class="muted" data-i18n="homePublications"></span><span class="badge" data-local-edits="publications" data-i18n="localEdits" hidden></span><span class="home-edit"><span data-i18n="homeEdit"></span> →</span></button>
-        <button type="button" class="home-card" data-open-section="blog"><strong data-i18n="navBlog"></strong><span class="muted" data-i18n="homeBlog"></span><span class="badge" data-local-edits="blog" data-i18n="localEdits" hidden></span><span class="home-edit"><span data-i18n="homeEdit"></span> →</span></button>
+        <button type="button" class="home-card" data-open-section="cv"><strong data-i18n="navCV"></strong><span class="badge" data-local-edits="cv" data-i18n="localEdits" hidden></span><span class="home-arrow" aria-hidden="true">→</span></button>
+        <button type="button" class="home-card" data-open-section="publications"><strong data-i18n="navPublications"></strong><span class="badge" data-local-edits="publications" data-i18n="localEdits" hidden></span><span class="home-arrow" aria-hidden="true">→</span></button>
+        <button type="button" class="home-card" data-open-section="blog"><strong data-i18n="navBlog"></strong><span class="badge" data-local-edits="blog" data-i18n="localEdits" hidden></span><span class="home-arrow" aria-hidden="true">→</span></button>
       </div>
       <div class="library-footer"><button id="home-resume" data-i18n="resume" hidden></button><button id="home-progress" data-i18n="progress" hidden></button><button id="home-backups" class="quiet" data-i18n="restore"></button></div>
       <footer class="home-footer"><div><p id="home-connection" class="hint" role="status"></p><button id="home-logout" class="quiet" data-i18n="logout"></button></div><a id="published-site" target="_blank" rel="noopener noreferrer"><span data-i18n="viewPublishedSite"></span> ↗</a></footer>
     </section>
     <section id="library-view" class="view" hidden>
-      <div class="page-heading"><div><p class="eyebrow" data-i18n="notebook"></p><h1 data-i18n="heading"></h1></div><button id="new" class="primary" data-i18n="new"></button></div>
-      <p class="muted" data-i18n="intro"></p>
+      <div class="page-heading"><div><h1 data-i18n="heading"></h1></div><button id="new" class="primary" data-i18n="new"></button></div>
       <p data-notice role="status" hidden></p>
       <label class="sr-only" for="search" data-i18n="search"></label><input id="search" type="search" autocomplete="off">
       <div class="filter-row">
@@ -111,7 +104,7 @@
         <label for="language" data-i18n="language"></label><select id="language"><option value="zh">中文</option><option value="en">English</option></select>
         <label for="topic" data-i18n="topic"></label><input id="topic" value="misc" autocapitalize="none" spellcheck="false" required>
         <label for="slug" data-i18n="slug"></label><input id="slug" autocapitalize="none" spellcheck="false" required>
-        <p class="hint" data-i18n="slugHelp"></p><button class="primary full" type="submit" data-i18n="create"></button>
+        <button class="primary full" type="submit" data-i18n="create"></button>
       </form>
     </section>
     <section id="editor-view" class="view editor-shell" hidden>
@@ -132,17 +125,16 @@
           <label class="sr-only" for="source" data-i18n="body"></label>
           <textarea id="source" spellcheck="false" autocapitalize="none" autocomplete="off" autocorrect="off"></textarea>
         </div>
-        <div id="preview-panel" class="preview-panel" data-panel="preview" hidden><p class="hint preview-hint" data-i18n="previewHelp"></p><p id="preview-loading" class="hint preview-hint" role="status" data-i18n="previewLoading" hidden></p><iframe id="preview-frame" title="Article preview" sandbox="allow-same-origin" data-src="preview.html?v=6"></iframe></div>
+        <div id="preview-panel" class="preview-panel" data-panel="preview" hidden><p id="preview-loading" class="hint preview-hint" role="status" data-i18n="previewLoading" hidden></p><iframe id="preview-frame" title="Article preview" sandbox="allow-same-origin" data-src="preview.html?v=6"></iframe></div>
         <div id="info-panel" class="form-panel" data-panel="info" hidden>
           <label for="title" data-i18n="title"></label><input id="title" required>
           <label for="date" data-i18n="date"></label><input id="date" type="date">
           <label for="tags" data-i18n="tags"></label><input id="tags">
           <label for="categories" data-i18n="categories"></label><input id="categories">
-          <p class="hint" data-i18n="taxonomyHelp"></p><p class="hint" data-i18n="bodyHint"></p>
         </div>
         <div id="advanced-panel" class="form-panel" data-panel="advanced" hidden>
           <label for="path" data-i18n="path"></label><input id="path" autocapitalize="none" spellcheck="false">
-          <label for="raw-source" data-i18n="raw"></label><p class="hint" data-i18n="rawHelp"></p>
+          <label for="raw-source" data-i18n="raw"></label>
           <textarea id="raw-source" rows="18" spellcheck="false" autocapitalize="none" autocomplete="off" autocorrect="off"></textarea>
         </div>
       </div>
@@ -150,10 +142,10 @@
     </section>
     <section id="backups-view" class="view" hidden>
       <button id="backups-back" class="quiet back" data-i18n="cancel"></button><div class="page-heading"><h1 data-i18n="backups"></h1><button id="backups-refresh" data-i18n="refresh"></button></div>
-      <p class="hint" data-i18n="backupsHelp"></p><p data-notice role="status" hidden></p><div id="backups-list" class="backups-list"></div>
+      <p data-notice role="status" hidden></p><div id="backups-list" class="backups-list"></div>
     </section>
     <section id="result-view" class="view narrow" hidden>
-      <p class="eyebrow" data-i18n="progress"></p><h1 data-i18n="resultHeading"></h1>
+      <h1 data-i18n="resultHeading"></h1>
       <p data-notice role="status" hidden></p>
       <div class="surface result-card">
         <p id="result-title" class="result-title"></p>
@@ -164,7 +156,6 @@
         <button id="check-status" class="quiet full" data-i18n="checkStatus"></button>
       </div>
       <div class="result-actions"><button id="continue-editing" data-i18n="continueEditing"></button><button id="result-back" class="quiet" data-i18n="resultBack"></button></div>
-      <p class="hint" data-i18n="desktopHint"></p>
     </section>
     <noscript>This editor requires JavaScript. / 此编辑器需要启用 JavaScript。</noscript>
   </main>

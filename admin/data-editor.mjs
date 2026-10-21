@@ -64,7 +64,7 @@ export class DataEditor {
   constructor({ root, locale, api, notify, published }) {
     Object.assign(this, { root, locale, api, notify, published }); this.records = null; this.dirty = false; this.backupVersion = null; this.sessions = new Map();
   }
-  text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '添加条目（同步创建中英文条目）' : 'Add entry in both languages', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '修改已备份在此设备，尚未发布。' : 'Backed up on this device; not published.', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布当前 CV / Publications 的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
+  text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '添加条目' : 'Add entry', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '已备份 · 未发布' : 'Backed up · Unpublished', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布当前 CV / Publications 的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
   async open(kind, reload = false) {
     if (this.kind && this.records) this.sessions.set(this.kind, { records: this.records, dirty: this.dirty, backupVersion: this.backupVersion });
     const client = this.api(), saved = this.sessions.get(kind), inventory = client.latestSnapshot;
@@ -118,7 +118,6 @@ export class DataEditor {
     this.renderedLang = lang;
     this.root.replaceChildren();
     const heading = document.createElement('h1'); heading.textContent = this.kind === 'cv' ? (zh ? '简历' : 'CV') : (zh ? '论文' : 'Publications'); this.root.append(heading);
-    const hint = document.createElement('p'); hint.className = 'hint'; hint.textContent = zh ? '仅显示当前语言。切换 En / Zh 可检查另一版本；新增条目同时创建两个版本，请分别填写。发布会同时保存中英文文件并触发网站更新。PDF 链接指向仓库中已有的文件。' : 'Showing the selected language. Switch En / Zh to review the other version. New entries are created in both versions; complete each translation. Publishing saves both files and rebuilds the site. PDF links refer to existing repository files.'; this.root.append(hint);
     const target = document.createElement('div'); target.className = 'data-fields'; this.root.append(target);
     this.fields(target, record.value, [], record.value);
     for (const details of this.root.querySelectorAll('details[data-group]')) if (expanded.has(details.dataset.group) || details.dataset.group === this.revealPath) details.open = true;

@@ -209,11 +209,11 @@ body[data-view=editor] .site-header { position: fixed; inset-inline: 0; top: var
 
 .home-view { padding-top: clamp(24px, 6vh, 64px); }
 .home-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 32px 0 24px; }
-.home-card { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 12px; padding: 24px; border-radius: 14px; }
+.home-card { display: grid; grid-template-columns: 1fr auto; align-items: center; text-align: left; gap: 12px; padding: 24px; border-radius: 14px; }
 .home-card:hover { border-color: var(--accent); }
 .home-card strong { font: 600 24px/1.4 var(--font-heading); }
-.home-card > .muted { font-size: 15px; }
-.home-edit { margin-top: auto; padding-top: 12px; font-size: 14px; }
+.home-card .badge { grid-column: 1; grid-row: 2; justify-self: start; }
+.home-arrow { grid-column: 2; grid-row: 1; color: var(--muted); }
 .home-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; border-top: 1px solid var(--line); padding: 20px 0 max(20px, env(safe-area-inset-bottom)); }
 .home-footer .hint { margin: 0; }
 .home-footer button { padding-left: 0; }

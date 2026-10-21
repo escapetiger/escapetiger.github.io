@@ -1,7 +1,7 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=12';
+import { messages } from './messages.mjs?v=13';
 import { BackupStore } from './backups.mjs?v=11';
 import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
@@ -12,7 +12,7 @@ import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './aut
 import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
 import { Credentials } from './credentials.mjs?v=4';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=11';
+import { DataEditor, dataPath } from './data-editor.mjs?v=13';
 
 const credentials = new Credentials();
 const $ = id => document.getElementById(id);
@@ -158,7 +158,6 @@ function renderLocale() {
   $('locale').setAttribute('aria-label', locale === 'zh' ? 'Switch to English' : '切换为中文');
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   $('search').placeholder = t('search');
-  $('source').placeholder = t('bodyHint');
   renderLibraryFilters(); renderCards(); renderEditorHeading(); renderProgress();
   $('theme-toggle').setAttribute('aria-label', t('toggleTheme'));
   $('theme-toggle').title = t('toggleTheme');
@@ -458,7 +457,7 @@ async function chooseImages(event) {
     assets.push(...prepared); dirty = true; backupSession.touched = true; backupSession.suppressed = false; fillFields(); updateImageTray();
     $('source').setSelectionRange(start + insert.length, start + insert.length);
     const saved = await flushBackup(true);
-    notice(saved ? t('imageHelp') : t('backupFailed'), !saved);
+    if (!saved) notice(t('backupFailed'), true);
   });
 }
 function savePending() {
@@ -482,7 +481,9 @@ function renderProgress() {
   if (!pending) return;
   const stage = progressState.stage;
   $('result-title').textContent = typeof pending.title === 'string' ? pending.title : pending.path;
-  $('result-status').textContent = t(stage); $('result-help').textContent = t(`${stage}Help`);
+  $('result-status').textContent = t(stage);
+  $('result-help').hidden = !['excluded', 'failed', 'disabled', 'unverified', 'timeout'].includes(stage);
+  $('result-help').textContent = $('result-help').hidden ? '' : t(`${stage}Help`);
   $('commit-link').href = `${sourceRepo}/commit/${pending.commit}`;
   const logs = progressState.logs;
   $('build-link').href = typeof logs === 'string' &&
