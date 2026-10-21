@@ -1,0 +1,187 @@
+// Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
+export const dataPath = (kind, lang) => {
+  if (!['cv', 'publications'].includes(kind) || !['en', 'zh'].includes(lang)) throw new Error('Invalid section.');
+  return `data/${lang}/${kind}.yaml`;
+};
+const sections = ['research', 'appointments', 'education', 'visiting', 'service', 'talks', 'posters', 'teaching'];
+export function parseData(kind, text, incomplete = false) {
+  const value = globalThis.jsyaml.load(text, { schema: globalThis.jsyaml.JSON_SCHEMA });
+  const object = item => item && typeof item === 'object' && !Array.isArray(item);
+  const check = item => {
+    if (item === null || !['object', 'string', 'number', 'boolean'].includes(typeof item)) throw new Error('Unsupported data value.');
+    if (typeof item === 'object') for (const [key, child] of Object.entries(item)) {
+      if (['__proto__', 'constructor', 'prototype'].includes(key)) throw new Error('Invalid data key.');
+      check(child);
+    }
+  };
+  check(value);
+  if (kind === 'publications') {
+    if (!Array.isArray(value)) throw new Error('Publications must be a list.');
+    for (const entry of value) {
+      if (!object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim()) || !['published', 'submitted', 'drafted'].includes(entry.status) || !Number.isInteger(entry.year) || entry.year < 1900 || entry.year > 2200) throw new Error('Each publication needs a title, status and year (1900–2200).');
+    }
+  } else if (kind === 'cv') {
+    if (!object(value) || typeof value.intro !== 'string' || typeof value.pdf !== 'string') throw new Error('CV needs intro and pdf fields.');
+    for (const key of sections) {
+      const section = value[key];
+      if (!object(section) || typeof section.title !== 'string' || !Array.isArray(section[key === 'research' ? 'items' : 'entries'])) throw new Error(`Invalid CV section: ${key}`);
+      for (const entry of section[key === 'research' ? 'items' : 'entries']) {
+        if (key === 'research' ? typeof entry !== 'string' : !object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim())) throw new Error(`Invalid CV entry: ${key}`);
+        if (key === 'talks' && !['seminar', 'workshop', 'conference'].includes(entry.type)) throw new Error('Invalid talk type.');
+      }
+    }
+  } else throw new Error('Invalid section.');
+  return value;
+}
+export async function saveData(api, kind, records) {
+  const paths = ['en', 'zh'].map(lang => dataPath(kind, lang));
+  if (!Array.isArray(records) || records.length !== 2 || paths.some(path => records.filter(record => record.path === path).length !== 1)) throw new Error('Both language files are required.');
+  for (const record of records) parseData(kind, record.text);
+  const state = await api.snapshot();
+  for (const record of records) {
+    const current = state.files.find(file => file.path === record.path);
+    if (!current || current.mode !== '100644' || current.sha !== record.sha) throw new Error('This section changed on GitHub. Export your edits, then reload the latest version.');
+  }
+  const entries = [];
+  for (const record of records) {
+    const blob = await api.request('git/blobs', 'POST', { content: record.text, encoding: 'utf-8' });
+    entries.push({ path: record.path, sha: blob.sha, mode: '100644', type: 'blob' });
+  }
+  const tree = await api.request('git/trees', 'POST', { base_tree: state.tree, tree: entries });
+  const commit = await api.request('git/commits', 'POST', { message: `Update ${kind} in English and Chinese`, tree: tree.sha, parents: [state.head] });
+  await api.request('git/refs/heads/main', 'PATCH', { sha: commit.sha, force: false });
+  return { commit: commit.sha, files: entries };
+}
+const labels = {
+  zh: { intro: '个人简介', pdf: 'PDF 路径', research: '研究方向', appointments: '工作经历', education: '教育经历', visiting: '访问经历', service: '学术服务', talks: '学术报告', posters: '海报', teaching: '教学经历', title: '标题', items: '条目', entries: '条目', date: '日期', institution: '机构', detail: '说明', location: '地点', type: '类型', event_url: '活动链接', date_start: '开始日期', date_end: '结束日期', slides: '幻灯片路径', authors: '作者', publisher: '期刊 / 出版物', volume: '卷期', pages: '页码', year: '年份', status: '状态', code: '代码链接', url: '论文链接' },
+  en: { intro: 'Introduction', pdf: 'PDF path', research: 'Research', appointments: 'Appointments', education: 'Education', visiting: 'Visiting experience', service: 'Academic service', talks: 'Talks', posters: 'Posters', teaching: 'Teaching', title: 'Title', items: 'Items', entries: 'Entries', date: 'Date', institution: 'Institution', detail: 'Details', location: 'Location', type: 'Type', event_url: 'Event URL', date_start: 'Start date', date_end: 'End date', slides: 'Slides path', authors: 'Authors', publisher: 'Journal / publisher', volume: 'Volume', pages: 'Pages', year: 'Year', status: 'Status', code: 'Code URL', url: 'Paper URL' }
+};
+const blankPublication = () => ({ title: '', status: 'submitted', authors: '', publisher: '', volume: '', pages: '', year: new Date().getFullYear(), pdf: '', code: '', url: '' });
+const blankEntry = key => key === 'research' ? '' : key === 'talks' ? { title: '', type: 'seminar', event_url: '', location: '', date_start: '', date_end: '', slides: '' } : { title: '', date: '', institution: '', detail: '', location: '' };
+const draftKey = kind => `yicai-section-backup-v1-${kind}`;
+export class DataEditor {
+  constructor({ root, locale, api, notify, published }) {
+    Object.assign(this, { root, locale, api, notify, published }); this.records = null; this.dirty = false; this.backupVersion = null;
+  }
+  text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '添加条目（同步创建中英文条目）' : 'Add entry in both languages', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '修改已备份在此设备，尚未发布。' : 'Backed up on this device; not published.', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布当前 CV / Publications 的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
+  async open(kind, reload = false) {
+    if (!reload && this.kind === kind && this.records) { this.render(); return; }
+    const snapshot = await this.api().snapshot(), records = {};
+    for (const lang of ['en', 'zh']) {
+      const path = dataPath(kind, lang), file = snapshot.files.find(file => file.path === path && file.mode === '100644');
+      if (!file) throw new Error(`Missing ${path}`);
+      const text = await this.api().read(file.sha);
+      records[lang] = { path, sha: file.sha, text, value: parseData(kind, text) };
+    }
+    this.kind = kind; this.records = records; this.dirty = false;
+    try { this.backupVersion = localStorage.getItem(draftKey(kind)); } catch { this.backupVersion = null; }
+    if (!reload) {
+      try {
+        const draft = JSON.parse(this.backupVersion);
+        if (draft && ['en', 'zh'].every(lang => draft[lang]?.path === dataPath(kind, lang) && typeof draft[lang].text === 'string' && /^[0-9a-f]{40}$/.test(draft[lang].sha)) && confirm(this.text('restore'))) {
+          // Drafts may contain incomplete entries. Validate the completed pair before publishing.
+          for (const lang of ['en', 'zh']) { const record = draft[lang]; record.value = parseData(kind, record.text, true); }
+          this.records = draft; this.dirty = true;
+        }
+      } catch { /* Keep the remote version when a device backup is unavailable. */ }
+    }
+    if (reload) { try { localStorage.removeItem(draftKey(kind)); this.backupVersion = null; } catch { /* The latest remote version is still available. */ } }
+    this.render();
+  }
+  backup() {
+    if (!this.dirty || !this.records) return true;
+    try {
+      const next = JSON.stringify(this.records), current = localStorage.getItem(draftKey(this.kind));
+      if (current !== this.backupVersion && current !== next) throw new Error('Backup changed in another tab.');
+      localStorage.setItem(draftKey(this.kind), next); this.backupVersion = next; this.notify(this.text('saved')); return true;
+    }
+    catch { this.notify(this.text('failed'), true); return false; }
+  }
+  changed() {
+    this.dirty = true;
+    const record = this.records[this.locale()];
+    record.text = globalThis.jsyaml.dump(record.value, { lineWidth: 100, noRefs: true, schema: globalThis.jsyaml.JSON_SCHEMA });
+    this.backup();
+  }
+  render() {
+    if (!this.records) return;
+    const lang = this.locale(), record = this.records[lang], zh = lang === 'zh';
+    const expanded = new Set(this.renderedLang === lang ? [...this.root.querySelectorAll('details[open][data-group]')].map(node => node.dataset.group) : []);
+    this.renderedLang = lang;
+    this.root.replaceChildren();
+    const heading = document.createElement('h1'); heading.textContent = this.kind === 'cv' ? (zh ? '简历' : 'CV') : (zh ? '论文' : 'Publications'); this.root.append(heading);
+    const hint = document.createElement('p'); hint.className = 'hint'; hint.textContent = zh ? '仅显示当前语言。切换 En / Zh 可检查另一版本；新增条目同时创建两个版本，请分别填写。发布会同时保存中英文文件并触发网站更新。PDF 链接指向仓库中已有的文件。' : 'Showing the selected language. Switch En / Zh to review the other version. New entries are created in both versions; complete each translation. Publishing saves both files and rebuilds the site. PDF links refer to existing repository files.'; this.root.append(hint);
+    const target = document.createElement('div'); target.className = 'data-fields'; this.root.append(target);
+    this.fields(target, record.value, [], record.value);
+    for (const details of this.root.querySelectorAll('details[data-group]')) if (expanded.has(details.dataset.group) || details.dataset.group === this.revealPath) details.open = true;
+    if (this.revealPath !== undefined) {
+      const item = [...this.root.querySelectorAll('details[data-group]')].find(node => node.dataset.group === this.revealPath);
+      item?.querySelector('textarea, select, input')?.focus(); this.revealPath = undefined;
+    }
+    if (this.dirty) this.backup();
+  }
+  fields(root, value, path, parent, key) {
+    const lang = this.locale(), label = name => labels[lang][name] || name;
+    if (Array.isArray(value)) {
+      value.forEach((entry, index) => {
+        const details = document.createElement('details'); details.className = 'surface data-entry'; details.dataset.group = [...path, index].join('.');
+        const summary = document.createElement('summary'); summary.textContent = `${index + 1}. ${typeof entry === 'string' ? entry : entry.title || '…'}`; details.append(summary);
+        this.fields(details, entry, [...path, index], value, index);
+        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.textContent = this.text('remove');
+        remove.onclick = () => { if (confirm(this.text('delete'))) { value.splice(index, 1); this.changed(); this.render(); } }; details.append(remove); root.append(details);
+      });
+      const add = document.createElement('button'); add.type = 'button'; add.textContent = this.text('add');
+      add.onclick = () => {
+        for (const language of ['en', 'zh']) {
+          let list = this.records[language].value;
+          for (const segment of path) list = list[segment];
+          list.push(this.kind === 'publications' ? blankPublication() : blankEntry(path[0]));
+          this.records[language].text = globalThis.jsyaml.dump(this.records[language].value, { lineWidth: 100, noRefs: true, schema: globalThis.jsyaml.JSON_SCHEMA });
+        }
+        this.revealPath = [...path, value.length - 1].join('.'); this.dirty = true; this.backup(); this.render();
+      }; root.append(add);
+    } else if (value && typeof value === 'object') {
+      // Expose optional fields even when older entries omit them. Preserve unknown fields.
+      const defaults = this.kind === 'publications' && path.length === 1 ? blankPublication() :
+        this.kind === 'cv' && path.length === 3 && path[1] === 'entries' ? blankEntry(path[0]) : {};
+      for (const [name, fallback] of Object.entries(defaults)) if (!Object.hasOwn(value, name)) value[name] = fallback;
+      for (const [name, child] of Object.entries(value)) {
+        if (child && typeof child === 'object') {
+          const group = document.createElement('details'); group.className = 'data-section'; group.dataset.group = [...path, name].join('.'); group.open = this.kind === 'publications';
+          const summary = document.createElement('summary'); summary.textContent = label(name); group.append(summary); this.fields(group, child, [...path, name], value, name); root.append(group);
+        } else {
+          const wrapper = document.createElement('label'); wrapper.textContent = label(name); this.fields(wrapper, child, [...path, name], value, name); root.append(wrapper);
+        }
+      }
+    } else {
+      const choices = key === 'status' ? ['published', 'submitted', 'drafted'] : key === 'type' ? ['seminar', 'workshop', 'conference'] : null;
+      const input = document.createElement(choices ? 'select' : typeof value === 'boolean' ? 'input' : 'textarea');
+      if (choices) for (const option of choices) input.append(new Option(option, option));
+      if (typeof value === 'boolean') { input.type = 'checkbox'; input.checked = value; } else input.value = value ?? '';
+      input.dataset.field = path.join('.'); input.setAttribute('aria-label', label(key) || String(key)); input.spellcheck = false;
+      if (input.tagName === 'TEXTAREA') input.rows = key === 'intro' || key === 'title' ? 3 : 2;
+      input.addEventListener('input', () => { parent[key] = typeof value === 'number' ? Number(input.value) : typeof value === 'boolean' ? input.checked : input.value; this.changed();
+        if (key === 'title' || typeof key === 'number') {
+          const summary = input.closest('.data-entry')?.querySelector('summary');
+          if (summary) summary.textContent = `${path.filter(segment => typeof segment === 'number').at(-1) + 1}. ${input.value || '…'}`;
+        }
+      }); root.append(input);
+    }
+  }
+  export() {
+    if (!this.records) return;
+    for (const lang of ['en', 'zh']) {
+      const url = URL.createObjectURL(new Blob([this.records[lang].text], { type: 'text/yaml;charset=utf-8' }));
+      const link = document.createElement('a'); link.href = url; link.download = `${this.kind}-${lang}.yaml`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  }
+  async publish() {
+    if (!this.records || !confirm(this.text('publish'))) return;
+    const result = await saveData(this.api(), this.kind, Object.values(this.records));
+    for (const record of Object.values(this.records)) record.sha = result.files.find(file => file.path === record.path).sha;
+    this.dirty = false;
+    try { if (localStorage.getItem(draftKey(this.kind)) === this.backupVersion) { localStorage.removeItem(draftKey(this.kind)); this.backupVersion = null; } } catch { /* The remote commit remains authoritative. */ }
+    this.published({ ...result, kind: this.kind });
+  }
+  clear() { this.records = null; this.kind = null; this.dirty = false; this.root.replaceChildren(); }
+}

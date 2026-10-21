@@ -1,6 +1,6 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=3';
-import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=3';
+import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
 import { messages } from './messages.mjs?v=6';
 import { BackupStore } from './backups.mjs?v=3';
 import { drawBackups } from './backup-ui.mjs?v=3';
@@ -9,6 +9,8 @@ import { renderPreview } from './preview.mjs?v=6';
 import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=5';
 import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=6';
 import { Credentials } from './credentials.mjs?v=4';
+
+import { DataEditor, dataPath } from './data-editor.mjs?v=7';
 
 const credentials = new Credentials();
 const $ = id => document.getElementById(id);
@@ -22,6 +24,32 @@ let pending = null, progressState = { stage: 'queued' }, pollTimer, checking = f
 let backupSession = null, assets = [], backupTimer, backupQueue = Promise.resolve(), backupsReturn = 'library';
 let imageSelection = { start: 0, end: 0 }, objectURLs = new Map();
 const t = key => messages[locale][key];
+let section = 'blog';
+const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify: notice,
+  published(result) {
+    clearTimeout(pollTimer); ++pollEpoch;
+    const file = result.files.find(file => file.path === dataPath(result.kind, locale));
+    pending = { ...file, files: result.files, kind: result.kind, commit: result.commit, action: 'publish',
+      title: result.kind === 'cv' ? 'CV' : 'Publications', url: `/${locale}/${result.kind}/`, started: Date.now() };
+    savePending(); progressState = { stage: 'queued' }; renderProgress(); setView('result'); void checkProgress();
+  }
+});
+function renderNavigation() {
+  document.querySelectorAll('[data-section]').forEach(button => {
+    const active = button.dataset.section === section;
+    if (active) button.setAttribute('aria-current', 'page'); else button.removeAttribute('aria-current');
+  });
+}
+async function openSection(next, push = true) {
+  if (!api) { setView('login'); return; }
+  await run(async () => {
+    if (!await mayReplace()) return;
+    if (dataEditor.dirty && !dataEditor.backup()) return;
+    if (next !== 'blog') await dataEditor.open(next);
+    section = next; renderNavigation(); setView(next === 'blog' ? 'library' : 'data', push);
+  });
+}
+
 const tagsText = value => (Array.isArray(value) ? value : typeof value === 'string' ? [value] : []).join(', ');
 const splitTags = value => value.split(/[,，\n]/).map(item => item.trim()).filter(Boolean);
 function notice(message = '', error = false) {
@@ -34,13 +62,17 @@ function setView(next, push = true) {
   if (next === 'editor' && !documentText) next = 'library';
   if (next === 'result' && !pending) next = 'library';
   view = next;
+  if (['library', 'editor', 'new', 'backups'].includes(next)) section = 'blog';
+  if (next === 'result') section = pending?.kind || 'blog';
+  renderNavigation();
   document.body.dataset.view = next;
+  if (next === 'editor') window.scrollTo(0, 0);
   document.querySelectorAll('.view').forEach(node => { node.hidden = node.id !== `${next}-view`; });
   $('resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
   $('progress').hidden = !pending;
   $('more-menu').open = false;
   notice();
-  const state = { editorView: next };
+  const state = { editorView: next, section };
   if (push) history.pushState(state, '', `#${next}`);
   else history.replaceState(state, '', `#${next}`);
   if (next !== 'editor') window.scrollTo(0, 0);
@@ -57,7 +89,7 @@ async function run(task) {
 function setBusy(value) {
   // Keep export available even when a network request is pending.
   document.querySelectorAll('button, input, select, textarea').forEach(node => {
-    if (node.id !== 'export') node.disabled = value;
+    if (!['export', 'data-export'].includes(node.id)) node.disabled = value;
   });
   document.querySelectorAll('.view').forEach(node => node.setAttribute('aria-busy', String(value && !node.hidden)));
 }
@@ -88,7 +120,8 @@ async function flushBackup(checkpoint = false) {
 }
 function changed() { dirty = true; if (backupSession) { backupSession.touched = true; backupSession.suppressed = false; } backup(); }
 function renderLocale() {
-  document.documentElement.lang = locale; $('locale').value = locale;
+  document.documentElement.lang = locale; $('locale').textContent = locale === 'zh' ? 'En' : 'Zh';
+  $('locale').setAttribute('aria-label', locale === 'zh' ? 'Switch to English' : '切换为中文');
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   $('search').placeholder = t('search');
   $('source').placeholder = t('bodyHint');
@@ -100,6 +133,7 @@ function renderLocale() {
   renderConnection();
   if (tab === 'preview') updatePreview();
   if (view === 'backups') void showBackups();
+  if (view === 'data') dataEditor.render();
 }
 function renderLibraryFilters() {
   const posts = files.filter(file => articleLanguage(file.path) === locale).map(file => cache.get(file.sha)?.post?.metadata || {});
@@ -385,7 +419,10 @@ function restorePending() {
     const record = JSON.parse(localStorage.getItem(pendingKey));
     if (!record || !/^[0-9a-f]{40}$/.test(record.commit) || !/^[0-9a-f]{40}$/.test(record.sha) ||
         !['draft', 'publish'].includes(record.action) || !Number.isFinite(record.started)) return;
-    postPath(record.path);
+    if (['cv', 'publications'].includes(record.kind)) {
+      if (!['en', 'zh'].some(lang => record.path === dataPath(record.kind, lang)) ||
+          !Array.isArray(record.files) || record.files.length !== 2 || !['en', 'zh'].every(lang => record.files.some(file => file.path === dataPath(record.kind, lang) && /^[0-9a-f]{40}$/.test(file.sha)))) return;
+    } else postPath(record.path);
     if (record.url && (typeof record.url !== 'string' || !record.url.startsWith('/') || record.url.startsWith('//'))) return;
     pending = record;
     progressState = terminalStages.has(record.stage) ? { stage: record.stage, url: record.url } : { stage: 'queued' };
@@ -402,6 +439,8 @@ function renderProgress() {
     [sourceRepo, 'https://github.com/escapetiger/escapetiger.github.io'].some(repo => logs.startsWith(`${repo}/actions/runs/`))
     ? logs : `${sourceRepo}/actions/workflows/mobile-publish.yml`;
   $('view-article').hidden = stage !== 'live';
+  if (pending.kind) $('view-article').textContent = locale === 'zh' ? '查看正式页面' : 'View published page';
+  else $('view-article').textContent = t('viewArticle');
   if (stage === 'live') {
     const url = new URL(progressState.url, siteOrigin);
     url.searchParams.set('published', pending.commit.slice(0, 7));
@@ -487,16 +526,22 @@ async function save(action, retract = false) {
 function updateViewport() {
   const geometry = viewportGeometry(window.visualViewport, window.innerHeight);
   document.documentElement.style.setProperty('--editor-top', `${geometry.top}px`);
-  document.documentElement.style.setProperty('--editor-height', `${geometry.height}px`);
+  const navHeight = document.querySelector('.site-header').getBoundingClientRect().height;
+  document.documentElement.style.setProperty('--nav-height', `${navHeight}px`);
+  document.documentElement.style.setProperty('--editor-height', `${Math.max(1, geometry.height - navHeight)}px`);
   document.body.dataset.keyboard = String(geometry.height < window.innerHeight * .8 && (window.visualViewport?.scale || 1) < 1.2);
 }
 
-$('locale').addEventListener('change', () => {
-  locale = $('locale').value;
+$('locale').addEventListener('click', () => {
+  locale = locale === 'zh' ? 'en' : 'zh';
   try { localStorage.setItem(localeKey, locale); } catch { /* The selected language still applies to this page. */ }
   for (const id of ['search', 'filter-category', 'filter-tag', 'filter-year']) $(id).value = '';
   renderLocale();
 });
+document.querySelectorAll('[data-section]').forEach(button => button.addEventListener('click', () => void openSection(button.dataset.section)));
+$('data-export').addEventListener('click', () => dataEditor.export());
+$('data-reload').addEventListener('click', () => { if (confirm(dataEditor.text('reload'))) void run(async () => { await dataEditor.open(section, true); }); });
+$('data-publish').addEventListener('click', () => void run(() => dataEditor.publish()));
 for (const id of ['search', 'filter-state', 'filter-category', 'filter-tag', 'filter-year']) $(id).addEventListener(id === 'search' ? 'input' : 'change', renderCards);
 function renderConnection() {
   const remembered = authMode === 'token' && Boolean(credentials.read());
@@ -527,6 +572,7 @@ async function connected() {
   renderConnection();
   try { await backups.migrate(); } catch { /* Existing local backups are retained if migration is unavailable. */ }
   restorePending();
+  section = 'blog'; renderNavigation();
   const active = pending && !terminalStages.has(progressState.stage);
   setView(active ? 'result' : 'library', false);
   if (active) { renderProgress(); void checkProgress(true); }
@@ -613,13 +659,13 @@ $('publish').addEventListener('click', () => save('publish'));
 $('retract').addEventListener('click', () => save('draft', true));
 $('progress').addEventListener('click', () => { setView('result'); renderProgress(); void checkProgress(true); });
 $('check-status').addEventListener('click', () => checkProgress(true));
-$('continue-editing').addEventListener('click', () => { if (documentText) setView('editor'); else void showBackups(); });
-$('result-back').addEventListener('click', () => setView('library'));
+$('continue-editing').addEventListener('click', () => { if (pending?.kind) { void openSection(pending.kind); return; } if (documentText) setView('editor'); else void showBackups(); });
+$('result-back').addEventListener('click', () => void openSection('blog'));
 $('export').addEventListener('click', () => {
   download(new Blob([documentText], { type: 'text/markdown;charset=utf-8' }), $('path').value.split('/').at(-1) || 'article.md'); $('more-menu').open = false;
 });
 $('logout').addEventListener('click', async () => {
-  if (!await mayReplace()) return;
+  if (!await mayReplace() || (dataEditor.dirty && !dataEditor.backup())) return;
   if (authMode === 'github') {
     try { await api.logout(); }
     catch { notice(t('signOutFailed'), true); return; }
@@ -628,16 +674,17 @@ $('logout').addEventListener('click', async () => {
   if (api) api.token = ''; api = null; accountLogin = '';
   files = []; cache.clear(); documentText = ''; originalPath = null; originalSha = null;
   $('source').value = ''; $('raw-source').value = ''; $('path').value = '';
-  dirty = false; pending = null;
+  dirty = false; pending = null; dataEditor.clear(); section = 'blog'; renderNavigation();
   clearTimeout(backupTimer); resetImageURLs(); backupSession = null; assets = [];
   const cleared = credentials.clear(); $('remember-device').checked = false;
   renderConnection(); setView('login', false); notice(t(authMode === 'github' ? 'signedOut' : cleared ? 'disconnected' : 'forgetFailed'), authMode === 'token' && !cleared);
 });
 window.addEventListener('popstate', event => {
   const next = event.state?.editorView;
-  if (['login', 'library', 'editor', 'new', 'result', 'backups'].includes(next)) setView(api && next === 'login' ? 'library' : next, false);
+  if (next === 'data' && ['cv', 'publications'].includes(event.state?.section)) { void openSection(event.state.section, false); return; }
+  if (['login', 'library', 'editor', 'new', 'result', 'backups', 'data'].includes(next)) setView(api && next === 'login' ? 'library' : next, false);
 });
-window.addEventListener('beforeunload', event => { if (dirty || busy) { event.preventDefault(); event.returnValue = ''; } });
+window.addEventListener('beforeunload', event => { if (dirty || busy || dataEditor.dirty) { event.preventDefault(); event.returnValue = ''; } });
 window.addEventListener('pagehide', () => { clearTimeout(pollTimer); if (dirty) void flushBackup(true); });
 window.addEventListener('pageshow', () => { updateViewport(); if (api && pending) void checkProgress(true); });
 document.addEventListener('visibilitychange', () => {

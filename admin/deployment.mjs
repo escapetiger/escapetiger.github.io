@@ -8,7 +8,7 @@ export async function deploymentStatus(api, pending, receipt) {
       if (comparison.status === 'ahead') {
         const tree = await api.request(`git/trees/${receipt.revision}?recursive=1`);
         if (tree.truncated) throw new Error('Incomplete deployment verification.');
-        included = tree.tree.some(file => file.path === pending.path && file.sha === pending.sha);
+        included = (pending.files || [pending]).every(expected => tree.tree.some(file => file.path === expected.path && file.sha === expected.sha));
         if (!included) return { stage: 'superseded' };
       }
     }

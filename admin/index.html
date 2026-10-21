@@ -12,20 +12,37 @@
   <title>Blog Editor · Yi Cai</title>
   <link rel="icon" href="/favicon/favicon.ico">
   <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
-  <script src="appearance.js?v=6"></script>
+  <script src="appearance.js?v=7"></script>
   <link rel="stylesheet" href="vendor/wenkai/font.css">
   <link rel="stylesheet" href="site.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=6">
+  <link rel="stylesheet" href="admin.css?v=7">
   <script src="vendor/js-yaml.min.js" defer></script>
   <script src="vendor/markdown-it.min.js" defer></script>
   <script src="vendor/purify.min.js" defer></script>
   <script src="vendor/katex/katex.min.js" defer></script>
-  <script src="app.mjs?v=6" type="module"></script>
+  <script src="app.mjs?v=7" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
-    <a class="brand" href="https://escapetiger.github.io/">Yi Cai <span data-i18n="brand"></span></a>
-    <div class="site-tools"><button id="theme-toggle" class="quiet theme-toggle" type="button" data-theme-toggle aria-label="Toggle theme"><svg class="moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 13a9 9 0 0 1-10-10 9 9 0 1 0 10 10Z"/></svg><svg class="sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button><select id="locale" aria-label="Interface language"><option value="zh">中文</option><option value="en">English</option></select></div>
+    <div class="nav-left"><a class="brand" href="https://escapetiger.github.io/">Yi Cai</a>
+    <div class="site-tools"><button id="theme-toggle" class="quiet theme-toggle" type="button" data-theme-toggle accesskey="t" aria-label="Toggle theme"><svg id="moon" class="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg><svg id="sun" class="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg></button><span class="nav-sep" aria-hidden="true">|</span><button id="locale" class="quiet language-toggle" type="button" aria-label="Switch language">En</button></div></div>
+    <nav class="section-menu" aria-label="Edit section"><button type="button" data-section="cv">CV</button><button type="button" data-section="publications">Publications</button><button type="button" data-section="blog" aria-current="page">Blog</button></nav>
   </header>
   <main>
     <section id="login-view" class="view login-view">
@@ -71,6 +88,11 @@
         <button id="resume" hidden data-i18n="resume"></button><button id="progress" hidden data-i18n="progress"></button>
         <button id="restore" class="quiet" data-i18n="restore"></button><button id="logout" class="quiet" data-i18n="logout"></button>
       </div>
+    </section>
+    <section id="data-view" class="view" hidden>
+      <p data-notice role="status" hidden></p>
+      <div id="data-content"></div>
+      <div class="data-actions"><button id="data-export" type="button" data-i18n="export"></button><button id="data-reload" type="button" data-i18n="refresh"></button><button id="data-publish" type="button" class="primary" data-i18n="publish"></button></div>
     </section>
     <section id="new-view" class="view narrow" hidden>
       <button id="cancel-new" class="quiet back" data-i18n="cancel"></button><h1 data-i18n="new"></h1>

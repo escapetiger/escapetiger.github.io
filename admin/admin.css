@@ -157,3 +157,34 @@ button, .button, input, select, textarea, .menu-panel, .backup-card { border-rad
 #source { font: 17px/1.9 var(--font-body); }
 .editor-tabs button[aria-pressed=true] { color: var(--accent); }
 @media (max-width: 600px) { .article-card { padding: 17px; } .article-card .card-title { font-size: 19px; } .article-grid { gap: 14px; } .page-heading { gap: 12px; } .page-heading > .primary { padding-inline: 12px; } body::before { background-size: auto 100%; background-position: 42% bottom; } }
+
+/* Use the same navigation hierarchy as the public website. */
+.site-header { min-height: 82px; padding-block: 8px; gap: 4px 24px; flex-wrap: wrap; }
+.nav-left { display: flex; align-items: center; gap: .55rem; }
+.site-tools { gap: .4rem; }
+.site-tools button { padding: 0 .4rem; border: 0; background: transparent; min-width: 32px; }
+.site-tools .theme-toggle { min-width: 36px; }
+.nav-sep { color: var(--muted); }
+.language-toggle { font-size: 16px; font-weight: 500; }
+.section-menu { display: flex; align-items: center; gap: 24px; margin-left: auto; }
+.section-menu button { padding: 0; min-height: 44px; background: transparent; border: 0; font-size: 16px; }
+.section-menu button:hover, .section-menu button[aria-current=page] { color: var(--accent); }
+.section-menu button[aria-current=page] { text-decoration: underline; text-underline-offset: .3rem; text-decoration-thickness: 2px; }
+body[data-view=editor] .site-header { display: flex; }
+.editor-shell { top: calc(var(--editor-top) + var(--nav-height, 82px)); }
+.data-section { padding-block: 12px; border-bottom: 1px solid var(--line); }
+.data-section > summary { cursor: pointer; font-size: 20px; color: var(--accent); }
+.data-entry { margin-block: 12px; padding: 16px; }
+.data-entry > summary { cursor: pointer; font-size: 17px; overflow-wrap: anywhere; }
+.data-fields textarea { font-family: var(--font-body); resize: vertical; }
+.data-fields input[type=checkbox] { width: auto; }
+.data-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 0; margin-top: 20px; border-top: 1px solid var(--line); }
+@media (max-width: 600px) {
+  .site-header { min-height: 70px; padding-block: 6px; column-gap: 12px; }
+  .section-menu { gap: 16px; }
+  .nav-left { gap: 4px; }
+  .brand { font-size: 24px; }
+  .brand::after { margin-left: 6px; }
+  .site-tools { gap: 2px; }
+}
+body[data-view=editor] .site-header { position: fixed; inset-inline: 0; top: var(--editor-top); z-index: 10; background: var(--bg); }
