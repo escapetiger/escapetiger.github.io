@@ -159,15 +159,15 @@ button, .button, input, select, textarea, .menu-panel, .backup-card { border-rad
 @media (max-width: 600px) { .article-card { padding: 17px; } .article-card .card-title { font-size: 19px; } .article-grid { gap: 14px; } .page-heading { gap: 12px; } .page-heading > .primary { padding-inline: 12px; } body::before { background-size: auto 100%; background-position: 42% bottom; } }
 
 /* Use the same navigation hierarchy as the public website. */
-.site-header { min-height: 82px; padding-block: 8px; gap: 4px 24px; flex-wrap: wrap; }
-.nav-left { display: flex; align-items: center; gap: .55rem; }
+.site-header { min-height: 82px; padding-block: 8px; padding-inline: max(20px, env(safe-area-inset-left)) max(20px, env(safe-area-inset-right)); gap: 24px; flex-wrap: nowrap; }
+.nav-left { display: flex; flex: 0 0 auto; align-items: center; gap: .55rem; white-space: nowrap; }
 .site-tools { gap: .4rem; }
 .site-tools button { padding: 0 .4rem; border: 0; background: transparent; min-width: 32px; }
 .site-tools .theme-toggle { min-width: 36px; }
 .nav-sep { color: var(--muted); }
 .language-toggle { font-size: 16px; font-weight: 500; }
-.section-menu { display: flex; align-items: center; gap: 24px; margin-left: auto; }
-.section-menu button { padding: 0; min-height: 44px; background: transparent; border: 0; font-size: 16px; }
+.section-menu { display: flex; min-width: 0; align-items: center; gap: 24px; margin-left: auto; overflow-x: auto; scrollbar-width: thin; }
+.section-menu button { flex: 0 0 auto; white-space: nowrap; padding: 0; min-height: 44px; background: transparent; border: 0; font-size: 16px; }
 .section-menu button:hover, .section-menu button[aria-current=page] { color: var(--accent); }
 .section-menu button[aria-current=page] { text-decoration: underline; text-underline-offset: .3rem; text-decoration-thickness: 2px; }
 body[data-view=editor] .site-header { display: flex; }
@@ -179,12 +179,30 @@ body[data-view=editor] .site-header { display: flex; }
 .data-fields textarea { font-family: var(--font-body); resize: vertical; }
 .data-fields input[type=checkbox] { width: auto; }
 .data-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 0; margin-top: 20px; border-top: 1px solid var(--line); }
-@media (max-width: 600px) {
-  .site-header { min-height: 70px; padding-block: 6px; column-gap: 12px; }
-  .section-menu { gap: 16px; }
+/* Compact the header before its two navigation groups compete for space. */
+@media (max-width: 700px) {
+  .site-header { min-height: 64px; padding-block: 6px; padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right)); gap: 12px; }
+  .section-menu { gap: 12px; }
+  .section-menu button { font-size: 15px; }
   .nav-left { gap: 4px; }
-  .brand { font-size: 24px; }
-  .brand::after { margin-left: 6px; }
+  .brand { flex-shrink: 0; font-size: 21px; }
+  .brand::after { width: 8px; height: 13px; margin-left: 6px; }
   .site-tools { gap: 2px; }
+  .site-tools button { min-width: 28px; padding-inline: 2px; }
+  .site-tools .theme-toggle { min-width: 32px; }
 }
+/* Keep full section names and 44px-high touch targets on small phones. */
+@media (max-width: 359px) {
+  .site-header { gap: 8px; padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right)); }
+  .brand { font-size: 18px; }
+  .brand::after { display: none; }
+  .nav-left { gap: 2px; }
+  .section-menu { gap: 8px; }
+  .section-menu button { font-size: 14px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .site-header { min-height: 52px; padding-block: 2px; }
+}
+body[data-keyboard=true] .site-header { min-height: 52px; padding-block: 2px; }
+.section-menu button:focus-visible { outline-offset: -3px; }
 body[data-view=editor] .site-header { position: fixed; inset-inline: 0; top: var(--editor-top); z-index: 10; background: var(--bg); }

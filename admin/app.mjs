@@ -526,7 +526,7 @@ async function save(action, retract = false) {
 function updateViewport() {
   const geometry = viewportGeometry(window.visualViewport, window.innerHeight);
   document.documentElement.style.setProperty('--editor-top', `${geometry.top}px`);
-  const navHeight = document.querySelector('.site-header').getBoundingClientRect().height;
+  const navHeight = Math.ceil(document.querySelector('.site-header').getBoundingClientRect().height);
   document.documentElement.style.setProperty('--nav-height', `${navHeight}px`);
   document.documentElement.style.setProperty('--editor-height', `${Math.max(1, geometry.height - navHeight)}px`);
   document.body.dataset.keyboard = String(geometry.height < window.innerHeight * .8 && (window.visualViewport?.scale || 1) < 1.2);
@@ -694,6 +694,8 @@ document.addEventListener('visibilitychange', () => {
 window.visualViewport?.addEventListener('resize', updateViewport);
 window.visualViewport?.addEventListener('scroll', updateViewport);
 window.addEventListener('resize', updateViewport);
+// Fonts, safe-area changes and compact header styles can resize navigation independently.
+new ResizeObserver(updateViewport).observe(document.querySelector('.site-header'));
 renderLocale(); setView('login', false);
 async function initializeLogin() {
   let configuration;
