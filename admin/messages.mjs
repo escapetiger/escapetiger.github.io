@@ -1,6 +1,8 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 export const messages = {
   zh: {
+    notebook: '我的笔记', toggleTheme: '切换明暗主题', allCategories: '全部分类', allTags: '全部标签', allYears: '全部年份', publicationYear: '文章年份',
+    undated: '日期未设置', uncategorized: '未分类', noTags: '未设置', editArticle: '编辑文章',
     githubLogin: '使用 GitHub 登录', githubLoginHelp: '使用你的 GitHub 账号，继续编辑和发布文章。',
     githubSessionHelp: '仅 escapetiger 账号可进入。无需复制 Token，登录状态由安全 Cookie 保持。',
     signOut: '退出登录', signedOut: '已退出 GitHub 登录，文章备份仍保留在此设备。', signedInAs: 'GitHub 已登录：',
@@ -28,7 +30,7 @@ export const messages = {
     rememberFailed: '已连接，但浏览器未能保存令牌，下次需要重新输入。', forgetFailed: '浏览器未能清除保存的令牌。请在浏览器设置中清除此网站的数据。',
     tokenExpired: '令牌已失效，本机保存的令牌已清除。请输入有效的新令牌。',
     connect: '连接 GitHub', createToken: '创建令牌', new: '新建文章', refresh: '刷新', restore: '本机备份', logout: '退出并清除登录',
-    search: '搜索标题或文件名', language: '文章语言', allLanguages: '所有语言', allStates: '所有状态', draft: '草稿', public: '公开文章', scheduled: '待发布',
+    search: '搜索标题、标签或分类', language: '文章语言', allLanguages: '所有语言', allStates: '所有状态', draft: '草稿', public: '公开文章', scheduled: '待发布',
     statusFilter: '文章状态', noArticles: '没有找到文章。试试更换搜索词或筛选条件。', loading: '正在读取文章标题…', retryArticle: '读取未完成，点选重试',
     title: '文章标题', date: '文章日期', tags: '标签', categories: '分类', taxonomyHelp: '用逗号分隔，例如：数学, AIGC。留空则不设置。',
     topic: '主题目录', slug: '文件名（不含 .md）', slugHelp: '同一篇文章的中英文版本请使用相同目录和文件名。', create: '开始写作',
@@ -62,6 +64,8 @@ export const messages = {
     articlesUnit: '篇文章', emptyTitle: '未命名文章'
   },
   en: {
+    notebook: 'MY NOTEBOOK', toggleTheme: 'Toggle light and dark theme', allCategories: 'All categories', allTags: 'All tags', allYears: 'All years', publicationYear: 'Article year',
+    undated: 'No date set', uncategorized: 'Uncategorized', noTags: 'None', editArticle: 'Edit article',
     githubLogin: 'Sign in with GitHub', githubLoginHelp: 'Use your GitHub account to edit and publish articles.',
     githubSessionHelp: 'Only escapetiger can enter. No token to copy; a secure cookie keeps you signed in.',
     signOut: 'Sign out', signedOut: 'Signed out. Article backups remain on this device.', signedInAs: 'Signed in with GitHub:',
@@ -89,7 +93,7 @@ export const messages = {
     rememberFailed: 'Connected, but the browser could not save the token. Enter it again next time.', forgetFailed: 'The browser could not remove the saved token. Clear this website’s data in your browser settings.',
     tokenExpired: 'The token is no longer valid and has been removed from this browser. Enter a new valid token.',
     connect: 'Connect GitHub', createToken: 'Create a token', new: 'New article', refresh: 'Refresh', restore: 'Local backups', logout: 'Sign out and forget',
-    search: 'Search titles or filenames', language: 'Article language', allLanguages: 'All languages', allStates: 'All states', draft: 'Draft', public: 'Public article', scheduled: 'Scheduled',
+    search: 'Search titles, tags or categories', language: 'Article language', allLanguages: 'All languages', allStates: 'All states', draft: 'Draft', public: 'Public article', scheduled: 'Scheduled',
     statusFilter: 'Article state', noArticles: 'No articles found. Try another search or filter.', loading: 'Loading article titles…', retryArticle: 'Not loaded yet. Tap to retry.',
     title: 'Article title', date: 'Article date', tags: 'Tags', categories: 'Categories', taxonomyHelp: 'Separate with commas, for example: Math, AIGC. Leave empty for none.',
     topic: 'Topic folder', slug: 'Filename (without .md)', slugHelp: 'Use the same topic and filename for both language versions.', create: 'Start writing',

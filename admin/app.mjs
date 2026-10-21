@@ -1,19 +1,20 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=3';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=3';
-import { messages } from './messages.mjs?v=5';
+import { messages } from './messages.mjs?v=6';
 import { BackupStore } from './backups.mjs?v=3';
 import { drawBackups } from './backup-ui.mjs?v=3';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=3';
-import { renderPreview } from './preview.mjs?v=3';
+import { renderPreview } from './preview.mjs?v=6';
 import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=5';
+import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=6';
 import { Credentials } from './credentials.mjs?v=4';
 
 const credentials = new Credentials();
 const $ = id => document.getElementById(id);
 const pendingKey = 'yicai-blog-publication-v1', backups = new BackupStore();
 const sourceRepo = 'https://github.com/escapetiger/hugo-yicai';
-let locale = navigator.language.startsWith('zh') ? 'zh' : 'en';
+let locale = preferredLocale(navigator.language);
 let authMode = 'token', accountLogin = '';
 let api, files = [], cache = new Map(), libraryEpoch = 0, view = 'login', tab = 'body';
 let documentText = '', originalPath = null, originalSha = null, savedState = 'draft', dirty = false, busy = false;
@@ -35,7 +36,7 @@ function setView(next, push = true) {
   view = next;
   document.body.dataset.view = next;
   document.querySelectorAll('.view').forEach(node => { node.hidden = node.id !== `${next}-view`; });
-  $('resume').hidden = !documentText;
+  $('resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
   $('progress').hidden = !pending;
   $('more-menu').open = false;
   notice();
@@ -91,43 +92,65 @@ function renderLocale() {
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   $('search').placeholder = t('search');
   $('source').placeholder = t('bodyHint');
-  renderCards(); renderEditorHeading(); renderProgress();
+  renderLibraryFilters(); renderCards(); renderEditorHeading(); renderProgress();
+  $('theme-toggle').setAttribute('aria-label', t('toggleTheme'));
+  $('theme-toggle').title = t('toggleTheme');
+  $('resume').hidden = !documentText || articleLanguage($('path').value) !== locale;
   $('preview-frame').title = t('preview');
   renderConnection();
   if (tab === 'preview') updatePreview();
   if (view === 'backups') void showBackups();
 }
+function renderLibraryFilters() {
+  const posts = files.filter(file => articleLanguage(file.path) === locale).map(file => cache.get(file.sha)?.post?.metadata || {});
+  for (const [id, key, values] of [
+    ['filter-category', 'allCategories', posts.flatMap(meta => taxonomyTerms(meta.categories))],
+    ['filter-tag', 'allTags', posts.flatMap(meta => taxonomyTerms(meta.tags))],
+    ['filter-year', 'allYears', posts.map(meta => articleDate(meta)?.year).filter(Boolean)]
+  ]) {
+    const select = $(id), previous = select.value;
+    const options = [...new Set(values)].sort((a, b) => id === 'filter-year' ? b.localeCompare(a) : a.localeCompare(b, locale));
+    select.replaceChildren(new Option(t(key), ''), ...options.map(value => new Option(value, value)));
+    select.value = options.includes(previous) ? previous : '';
+  }
+}
 function renderCards() {
-  const term = $('search').value.toLocaleLowerCase();
-  const lang = $('filter-language').value, state = $('filter-state').value;
-  const filtered = files.filter(file => {
-    const post = cache.get(file.sha)?.post;
-    const title = typeof post?.metadata.title === 'string' ? post.metadata.title : '';
-    return (!lang || file.path.split('/')[2] === lang) &&
-      (!state || articleState(file.path, post?.metadata) === state) &&
-      `${title} ${file.path}`.toLocaleLowerCase().includes(term);
-  });
+  const filtered = selectArticles(files, cache, { language: locale, term: $('search').value, state: $('filter-state').value,
+    category: $('filter-category').value, tag: $('filter-tag').value, year: $('filter-year').value });
   const cards = filtered.map(file => {
-    const entry = cache.get(file.sha), metadata = entry?.post?.metadata;
+    const entry = cache.get(file.sha), metadata = entry?.post?.metadata || {};
     const card = document.createElement('button');
-    card.type = 'button'; card.className = 'article-card'; card.dataset.path = file.path;
+    card.type = 'button'; card.className = 'article-card'; card.dataset.path = file.path; card.lang = locale;
+    const state = articleState(file.path, metadata), date = articleDate(metadata, locale);
     const top = document.createElement('span'); top.className = 'card-top';
-    const language = document.createElement('span'); language.textContent = file.path.split('/')[2] === 'zh' ? '中文' : 'ENGLISH';
-    const badge = document.createElement('span'); badge.className = 'badge'; badge.textContent = t(articleState(file.path, metadata));
-    top.append(language, badge);
-    const title = document.createElement('strong');
-    title.textContent = typeof metadata?.title === 'string' ? metadata.title : file.path.split('/').at(-1).replace(/\.md$/, '');
+    const badge = document.createElement('span'); badge.className = 'badge'; badge.dataset.state = state; badge.textContent = t(state);
+    const time = document.createElement('time'); time.className = 'card-date'; time.textContent = date?.label || t('undated');
+    if (date) time.dateTime = date.iso;
+    top.append(badge, time);
+    const title = document.createElement('strong'); title.className = 'card-title';
+    title.textContent = typeof metadata.title === 'string' ? metadata.title : file.path.split('/').at(-1).replace(/\.md$/, '');
+    const summary = document.createElement('span'); summary.className = 'card-summary'; summary.textContent = articleSummary(entry?.post); summary.hidden = !summary.textContent;
+    const taxonomies = document.createElement('span'); taxonomies.className = 'card-taxonomies';
+    for (const [key, values] of [['categories', taxonomyTerms(metadata.categories)], ['tags', taxonomyTerms(metadata.tags)]]) {
+      const row = document.createElement('span'); row.className = `card-${key}`;
+      const label = document.createElement('span'); label.className = 'taxonomy-label'; label.textContent = t(key); row.append(label);
+      for (const value of values.length ? values : [t(key === 'categories' ? 'uncategorized' : 'noTags')]) {
+        const chip = document.createElement('span'); chip.className = 'taxonomy-chip'; chip.textContent = value; row.append(chip);
+      }
+      taxonomies.append(row);
+    }
+    const footer = document.createElement('span'); footer.className = 'card-footer';
     const detail = document.createElement('span'); detail.className = 'card-path';
-    detail.textContent = entry?.error ? t('retryArticle') : file.path.replace('content/blog/', '');
-    card.append(top, title, detail);
-    card.addEventListener('click', () => openArticle(file));
-    return card;
+    detail.textContent = entry?.error ? t('retryArticle') : file.path.replace(`content/blog/${locale}/`, '');
+    const edit = document.createElement('span'); edit.className = 'card-edit'; edit.textContent = `${t('editArticle')} →`;
+    footer.append(detail, edit); card.append(top, title, summary, taxonomies, footer);
+    card.addEventListener('click', () => openArticle(file)); return card;
   });
   if (!cards.length) {
     const empty = document.createElement('p'); empty.className = 'muted'; empty.textContent = t('noArticles'); cards.push(empty);
   }
   $('articles').replaceChildren(...cards);
-  const missing = files.some(file => !cache.has(file.sha));
+  const missing = files.some(file => articleLanguage(file.path) === locale && !cache.has(file.sha));
   $('library-count').textContent = `${filtered.length} ${t('articlesUnit')}${missing ? ` · ${t('loading')}` : ''}`;
 }
 async function readArticle(client, file) {
@@ -148,7 +171,7 @@ async function hydrate(client, epoch) {
     if (client !== api || epoch !== libraryEpoch) return;
     results.forEach((result, index) => cache.set(group[index].sha,
       result.status === 'fulfilled' ? result.value : { error: result.reason.message }));
-    renderCards();
+    renderLibraryFilters(); renderCards();
   }
 }
 async function refresh() {
@@ -159,7 +182,7 @@ async function refresh() {
     try { postPath(file.path); return file.type === 'blob' && file.mode === '100644'; }
     catch { return false; }
   }).sort((a, b) => a.path.localeCompare(b.path));
-  renderCards();
+  renderLibraryFilters(); renderCards();
   void hydrate(client, epoch);
 }
 function renderEditorHeading() {
@@ -167,6 +190,8 @@ function renderEditorHeading() {
   try { title = readPost(documentText).metadata.title; } catch { /* Raw edits may temporarily be invalid. */ }
   $('editor-title').textContent = typeof title === 'string' && title.trim() ? title : t('emptyTitle');
   $('article-state').textContent = t(savedState);
+  let meta = {}; try { meta = readPost(documentText).metadata; } catch { /* Invalid raw edits stay editable. */ }
+  $('editor-meta').textContent = [articleDate(meta, locale)?.label, ...taxonomyTerms(meta.categories), ...taxonomyTerms(meta.tags).map(tag => `#${tag}`)].filter(Boolean).join(' · ');
   $('save-draft').hidden = savedState !== 'draft';
   $('retract').hidden = savedState === 'draft';
   $('publish').textContent = t(savedState === 'draft' ? 'publish' : 'publishUpdate');
@@ -283,7 +308,7 @@ function updatePreview() {
     const post = readPost(documentText), path = $('path').value.replace(/^(content\/blog\/(en|zh)\/)drafts\//, '$1');
     const base = new URL(articleURL(path, post.metadata) || '/', siteOrigin).href;
     const images = new Map(activeAssets().map(asset => [new URL(asset.url, siteOrigin).href, localImageURL(asset)]));
-    renderPreview($('preview-frame'), { body: post.body, title: post.metadata.title || '', base, images, locale });
+    renderPreview($('preview-frame'), { body: post.body, title: post.metadata.title || '', details: $('editor-meta').textContent, base, images, locale });
   } catch (error) { notice(`${t('error')}${error.message}`, true); }
 }
 async function showBackups() {
@@ -291,7 +316,7 @@ async function showBackups() {
   try {
     try { await backups.migrate(); } catch { notice(t('invalidBackup'), true); }
     await backups.collect();
-    const records = await backups.list();
+    const records = (await backups.list()).filter(record => articleLanguage(record.path) === locale);
     drawBackups($('backups-list'), records, { t, locale,
       restore: async (record, snapshot) => {
         if (!confirm(t('restoreConfirm')) || !await mayReplace()) return;
@@ -466,8 +491,13 @@ function updateViewport() {
   document.body.dataset.keyboard = String(geometry.height < window.innerHeight * .8 && (window.visualViewport?.scale || 1) < 1.2);
 }
 
-$('locale').addEventListener('change', () => { locale = $('locale').value; renderLocale(); });
-for (const id of ['search', 'filter-language', 'filter-state']) $(id).addEventListener(id === 'search' ? 'input' : 'change', renderCards);
+$('locale').addEventListener('change', () => {
+  locale = $('locale').value;
+  try { localStorage.setItem(localeKey, locale); } catch { /* The selected language still applies to this page. */ }
+  for (const id of ['search', 'filter-category', 'filter-tag', 'filter-year']) $(id).value = '';
+  renderLocale();
+});
+for (const id of ['search', 'filter-state', 'filter-category', 'filter-tag', 'filter-year']) $(id).addEventListener(id === 'search' ? 'input' : 'change', renderCards);
 function renderConnection() {
   const remembered = authMode === 'token' && Boolean(credentials.read());
   $('saved-login').hidden = !remembered;
@@ -518,7 +548,7 @@ $('forget-saved').addEventListener('click', () => {
 });
 $('refresh').addEventListener('click', () => run(refresh));
 $('new').addEventListener('click', () => {
-  $('new-title').value = '';
+  $('new-title').value = ''; $('language').value = locale;
   $('slug').value = `note-${new Date().toISOString().slice(0, 10)}-${Date.now().toString(36).slice(-4)}`;
   setView('new'); $('new-title').focus();
 });
@@ -561,7 +591,12 @@ $('backup-copy').addEventListener('click', async () => {
   const saved = await flushBackup(true); $('more-menu').open = false;
   notice(t(saved ? 'backupCopied' : 'backupFailed'), !saved);
 });
-$('preview-frame').addEventListener('load', () => { if (tab === 'preview' && documentText) updatePreview(); });
+function syncPreviewTheme() {
+  const root = $('preview-frame').contentDocument?.documentElement;
+  if (root) root.dataset.theme = document.documentElement.dataset.theme;
+}
+window.addEventListener('editor-theme-change', syncPreviewTheme);
+$('preview-frame').addEventListener('load', () => { syncPreviewTheme(); if (tab === 'preview' && documentText) updatePreview(); });
 for (const button of document.querySelectorAll('[data-insert]')) {
   button.addEventListener('pointerdown', event => event.preventDefault());
   button.addEventListener('click', () => {

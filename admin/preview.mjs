@@ -18,6 +18,11 @@ export function markdownRenderer(markdownit = globalThis.markdownit, katex = glo
     if (!silent) { const token = state.push('site_math', '', 0); token.content = state.src.slice(state.pos + 2, end); token.meta = { display: open === '\\[' }; }
     state.pos = end + 2; return true;
   });
+  md.block.ruler.before('paragraph', 'hugo_excerpt', (state, start, end, silent) => {
+    if (state.src.slice(state.bMarks[start] + state.tShift[start], state.eMarks[start]).trim() !== '<!--more-->') return false;
+    if (!silent) state.line = start + 1;
+    return true;
+  }, { alt: ['paragraph'] });
   md.block.ruler.before('paragraph', 'site_math_block', (state, start, end, silent) => {
     const begin = state.bMarks[start] + state.tShift[start];
     if (state.sCount[start] - state.blkIndent >= 4 || state.src.slice(begin, begin + 2) !== '\\[') return false;
@@ -51,7 +56,7 @@ export function markdownRenderer(markdownit = globalThis.markdownit, katex = glo
 }
 let renderer;
 const sanitizers = new WeakMap();
-export function renderPreview(frame, { body, title, base, images, locale }) {
+export function renderPreview(frame, { body, title, details = '', base, images, locale }) {
   const doc = frame.contentDocument;
   if (!doc?.getElementById('content') || !globalThis.DOMPurify) return false;
   renderer ||= markdownRenderer();
@@ -62,6 +67,8 @@ export function renderPreview(frame, { body, title, base, images, locale }) {
     ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|blob):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
     FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'base', 'link', 'meta'], FORBID_ATTR: ['id', 'name'] });
   doc.documentElement.lang = locale;
+  doc.documentElement.dataset.theme = document.documentElement.dataset.theme;
+  const metadata = doc.getElementById('metadata'); if (metadata) metadata.textContent = details;
   doc.getElementById('title').textContent = title;
   doc.getElementById('content').innerHTML = safe;
   // Keep preview links from navigating the sandbox away from its trusted document.

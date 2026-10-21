@@ -1,0 +1,56 @@
+/* Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details. */
+/* Palette and typography follow assets/css/extended/zz-ink.css. */
+:root {
+  --theme: #f5f1e8;
+  --entry: #faf7f0;
+  --primary: #2e302b;
+  --secondary: #6c6d62;
+  --tertiary: #e6e0d4;
+  --content: #363931;
+  --border: #d9d3c5;
+  --code-bg: #ede8dd;
+  --code-block-bg: #ede8dd;
+  --ink-accent: #984536;
+  --ink-accent-soft: #eee0d5;
+  --ink-wash: rgba(78, 85, 65, 0.055);
+  --ink-shadow: 0 5px 22px rgba(55, 52, 39, 0.035);
+  --radius: 4px;
+  --font-body: "LXGW WenKai Screen", "Kaiti SC", KaiTi, serif;
+  --font-heading: var(--font-body);
+  --font-author: var(--font-body);
+  --font-ui: var(--font-body);
+  --body-line: 1.9;
+  --heading-letter: 0.025em;
+  --syntax-bg: #eee9df;
+  --syntax-fg: #34392f;
+  --syntax-comment: #666b5f;
+  --code-border: #d7d0c1;
+  --pm-toc-radius: 5px;
+}
+
+:root[data-theme="dark"] {
+  --theme: #20231f;
+  --entry: #272b25;
+  --primary: #e4dfd2;
+  --secondary: #b0b1a2;
+  --tertiary: #363c32;
+  --content: #d4d3c5;
+  --border: #444b3e;
+  --code-bg: #2c3229;
+  --code-block-bg: #262c24;
+  --ink-accent: #df9b83;
+  --ink-accent-soft: #3c3029;
+  --ink-wash: rgba(180, 190, 155, 0.035);
+  --ink-shadow: 0 5px 22px rgba(0, 0, 0, 0.1);
+  --syntax-bg: #262c24;
+  --syntax-fg: #e0dfcf;
+  --syntax-comment: #afb7a3;
+  --code-border: #444b3e;
+}
+
+
+:root { --font-mono: Menlo, "Cascadia Code", Consolas, "LXGW WenKai Screen", monospace; color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+html { font-size: 16px; text-rendering: optimizeLegibility; }
+body { font-family: var(--font-body); }
+::selection { background: var(--ink-accent-soft); color: var(--primary); }
