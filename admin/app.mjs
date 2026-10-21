@@ -1,11 +1,12 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { GitHub, newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=3';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=3';
-import { messages } from './messages.mjs?v=4';
+import { messages } from './messages.mjs?v=5';
 import { BackupStore } from './backups.mjs?v=3';
 import { drawBackups } from './backup-ui.mjs?v=3';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=3';
 import { renderPreview } from './preview.mjs?v=3';
+import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=5';
 import { Credentials } from './credentials.mjs?v=4';
 
 const credentials = new Credentials();
@@ -13,6 +14,7 @@ const $ = id => document.getElementById(id);
 const pendingKey = 'yicai-blog-publication-v1', backups = new BackupStore();
 const sourceRepo = 'https://github.com/escapetiger/hugo-yicai';
 let locale = navigator.language.startsWith('zh') ? 'zh' : 'en';
+let authMode = 'token', accountLogin = '';
 let api, files = [], cache = new Map(), libraryEpoch = 0, view = 'login', tab = 'body';
 let documentText = '', originalPath = null, originalSha = null, savedState = 'draft', dirty = false, busy = false;
 let pending = null, progressState = { stage: 'queued' }, pollTimer, checking = false, pollEpoch = 0;
@@ -279,8 +281,8 @@ function updateImageTray() {
 function updatePreview() {
   try {
     const post = readPost(documentText), path = $('path').value.replace(/^(content\/blog\/(en|zh)\/)drafts\//, '$1');
-    const base = new URL(articleURL(path, post.metadata) || '/', location.origin).href;
-    const images = new Map(activeAssets().map(asset => [new URL(asset.url, location.origin).href, localImageURL(asset)]));
+    const base = new URL(articleURL(path, post.metadata) || '/', siteOrigin).href;
+    const images = new Map(activeAssets().map(asset => [new URL(asset.url, siteOrigin).href, localImageURL(asset)]));
     renderPreview($('preview-frame'), { body: post.body, title: post.metadata.title || '', base, images, locale });
   } catch (error) { notice(`${t('error')}${error.message}`, true); }
 }
@@ -376,7 +378,7 @@ function renderProgress() {
     ? logs : `${sourceRepo}/actions/workflows/mobile-publish.yml`;
   $('view-article').hidden = stage !== 'live';
   if (stage === 'live') {
-    const url = new URL(progressState.url, location.origin);
+    const url = new URL(progressState.url, siteOrigin);
     url.searchParams.set('published', pending.commit.slice(0, 7));
     $('view-article').href = url.href;
   }
@@ -467,9 +469,11 @@ function updateViewport() {
 $('locale').addEventListener('change', () => { locale = $('locale').value; renderLocale(); });
 for (const id of ['search', 'filter-language', 'filter-state']) $(id).addEventListener(id === 'search' ? 'input' : 'change', renderCards);
 function renderConnection() {
-  const remembered = Boolean(credentials.read());
+  const remembered = authMode === 'token' && Boolean(credentials.read());
   $('saved-login').hidden = !remembered;
-  $('connection-status').textContent = t(remembered ? 'deviceRemembered' : 'sessionOnly');
+  $('reauth').hidden = authMode !== 'github';
+  $('logout').textContent = t(authMode === 'github' ? 'signOut' : 'logout');
+  $('connection-status').textContent = authMode === 'github' ? `${t('signedInAs')} ${accountLogin}` : t(remembered ? 'deviceRemembered' : 'sessionOnly');
 }
 async function connect(token, remember, automatic = false) {
   await run(async () => {
@@ -485,15 +489,21 @@ async function connect(token, remember, automatic = false) {
       throw error;
     }
     const stored = remember ? credentials.save(token) : credentials.clear();
-    renderConnection();
-    try { await backups.migrate(); } catch { /* Existing local backups are retained if migration is unavailable. */ }
-    restorePending();
-    const active = pending && !terminalStages.has(progressState.stage);
-    setView(active ? 'result' : 'library', false);
+    await connected();
     if (!stored) notice(t(remember ? 'rememberFailed' : 'forgetFailed'), true);
-    if (active) { renderProgress(); void checkProgress(true); }
   });
 }
+async function connected() {
+  renderConnection();
+  try { await backups.migrate(); } catch { /* Existing local backups are retained if migration is unavailable. */ }
+  restorePending();
+  const active = pending && !terminalStages.has(progressState.stage);
+  setView(active ? 'result' : 'library', false);
+  if (active) { renderProgress(); void checkProgress(true); }
+}
+$('reauth').addEventListener('click', async () => {
+  if (await mayReplace()) location.assign('/admin/auth/login');
+});
 $('login-form').addEventListener('submit', event => {
   event.preventDefault();
   void connect($('token').value.trim(), $('remember-device').checked);
@@ -575,14 +585,18 @@ $('export').addEventListener('click', () => {
 });
 $('logout').addEventListener('click', async () => {
   if (!await mayReplace()) return;
+  if (authMode === 'github') {
+    try { await api.logout(); }
+    catch { notice(t('signOutFailed'), true); return; }
+  }
   ++libraryEpoch; ++pollEpoch; clearTimeout(pollTimer);
-  if (api) api.token = ''; api = null;
+  if (api) api.token = ''; api = null; accountLogin = '';
   files = []; cache.clear(); documentText = ''; originalPath = null; originalSha = null;
   $('source').value = ''; $('raw-source').value = ''; $('path').value = '';
   dirty = false; pending = null;
   clearTimeout(backupTimer); resetImageURLs(); backupSession = null; assets = [];
   const cleared = credentials.clear(); $('remember-device').checked = false;
-  renderConnection(); setView('login', false); notice(t(cleared ? 'disconnected' : 'forgetFailed'), !cleared);
+  renderConnection(); setView('login', false); notice(t(authMode === 'github' ? 'signedOut' : cleared ? 'disconnected' : 'forgetFailed'), authMode === 'token' && !cleared);
 });
 window.addEventListener('popstate', event => {
   const next = event.state?.editorView;
@@ -599,8 +613,36 @@ window.visualViewport?.addEventListener('resize', updateViewport);
 window.visualViewport?.addEventListener('scroll', updateViewport);
 window.addEventListener('resize', updateViewport);
 renderLocale(); setView('login', false);
-function autoConnect() {
-  const token = credentials.read();
+async function initializeLogin() {
+  let configuration;
+  await run(async () => {
+    const config = configuration = await authConfiguration(); authMode = config.mode;
+    const github = authMode === 'github';
+    $('github-login-panel').hidden = !github && !config.loginURL;
+    $('login-form').hidden = github;
+    $('github-login').href = github ? '/admin/auth/login' : config.loginURL || '#';
+    $('github-login').hidden = github && !config.ready;
+    $('login-retry').hidden = false;
+    renderConnection();
+    if (github) {
+      if (!config.ready) { notice(t('githubNotReady'), true); return; }
+      const errorCode = new URL(location.href).searchParams.get('auth_error');
+      if (errorCode) {
+        const key = { invalid_state: 'loginStateError', cancelled: 'loginCancelled', account_not_allowed: 'accountNotAllowed', installation_required: 'installationRequired' }[errorCode] || 'loginUnavailable';
+        history.replaceState(history.state, '', location.pathname + location.hash);
+        notice(t(key), true); return;
+      }
+      let session;
+      try { session = await authRequest('session'); }
+      catch (error) { if (error.status === 401) return; throw error; }
+      api = new SessionGitHub(session, t('sessionExpired')); accountLogin = session.login;
+      try { await refresh(); await connected(); }
+      catch (error) { api = null; accountLogin = ''; throw error; }
+    }
+  });
+  if (!configuration || (authMode === 'token' && !$('github-login-panel').hidden)) return;
+  const token = authMode === 'token' && credentials.read();
   if (token) void connect(token, true, true);
 }
-autoConnect();
+$('login-retry').addEventListener('click', initializeLogin);
+void initializeLogin();

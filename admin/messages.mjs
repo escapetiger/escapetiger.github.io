@@ -1,6 +1,15 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 export const messages = {
   zh: {
+    githubLogin: '使用 GitHub 登录', githubLoginHelp: '使用你的 GitHub 账号，继续编辑和发布文章。',
+    githubSessionHelp: '仅 escapetiger 账号可进入。无需复制 Token，登录状态由安全 Cookie 保持。',
+    signOut: '退出登录', signedOut: '已退出 GitHub 登录，文章备份仍保留在此设备。', signedInAs: 'GitHub 已登录：',
+    retryLogin: '重新检查登录状态', reauth: '重新登录 GitHub',
+    sessionExpired: '登录已失效，内容仍在编辑器中。请先导出重要修改，再从“更多 → 重新登录 GitHub”恢复连接。',
+    signOutFailed: '未能退出登录，请检查网络后重试。', githubNotReady: 'GitHub 登录尚未启用，请完成认证服务配置。',
+    loginStateError: '这次登录已过期或无法验证，请重新点击 GitHub 登录。', loginCancelled: '你已取消 GitHub 授权，可以重新登录。',
+    accountNotAllowed: '请使用 escapetiger 账号登录此博客。', installationRequired: '请先将此 GitHub App 安装到 hugo-yicai 仓库，并授予 Contents 读写权限。',
+    loginUnavailable: 'GitHub 登录暂时不可用，请稍后重新登录。',
     preview: '预览', previewHelp: 'Markdown 与公式预览；Hugo 短代码等特殊排版请以上线结果为准。',
     insertLink: '链接', insertList: '列表', insertMath: '公式', insertImage: '图片',
     imageHelp: '图片先保存在本机，随文章保存时上传；点击缩略图可下载图片。', imagePending: '张待上传图片', imagesSaved: '图片已随文章保存',
@@ -53,6 +62,15 @@ export const messages = {
     articlesUnit: '篇文章', emptyTitle: '未命名文章'
   },
   en: {
+    githubLogin: 'Sign in with GitHub', githubLoginHelp: 'Use your GitHub account to edit and publish articles.',
+    githubSessionHelp: 'Only escapetiger can enter. No token to copy; a secure cookie keeps you signed in.',
+    signOut: 'Sign out', signedOut: 'Signed out. Article backups remain on this device.', signedInAs: 'Signed in with GitHub:',
+    retryLogin: 'Check sign-in again', reauth: 'Sign in to GitHub again',
+    sessionExpired: 'Your session has expired. Content remains in the editor. Export important edits, then use More → Sign in to GitHub again.',
+    signOutFailed: 'Could not sign out. Check your connection and retry.', githubNotReady: 'GitHub sign-in is not enabled. Complete the authentication service setup.',
+    loginStateError: 'This sign-in attempt expired or could not be verified. Sign in with GitHub again.', loginCancelled: 'GitHub authorization was cancelled. You can sign in again.',
+    accountNotAllowed: 'Use the escapetiger account to sign in to this blog.', installationRequired: 'Install this GitHub App on hugo-yicai with Contents read and write permission first.',
+    loginUnavailable: 'GitHub sign-in is temporarily unavailable. Try signing in again later.',
     preview: 'Preview', previewHelp: 'Markdown and math preview. Verify Hugo shortcodes and special formatting on the published site.',
     insertLink: 'Link', insertList: 'List', insertMath: 'Math', insertImage: 'Image',
     imageHelp: 'Images stay on this device until saved with the article. Tap a thumbnail to download.', imagePending: 'images awaiting upload', imagesSaved: 'Images saved with article',

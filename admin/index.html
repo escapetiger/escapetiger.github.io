@@ -12,16 +12,16 @@
   <title>Blog Editor · Yi Cai</title>
   <link rel="icon" href="/favicon/favicon.ico">
   <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
-  <link rel="stylesheet" href="admin.css?v=4">
+  <link rel="stylesheet" href="admin.css?v=5">
   <script src="vendor/js-yaml.min.js" defer></script>
   <script src="vendor/markdown-it.min.js" defer></script>
   <script src="vendor/purify.min.js" defer></script>
   <script src="vendor/katex/katex.min.js" defer></script>
-  <script src="app.mjs?v=4" type="module"></script>
+  <script src="app.mjs?v=5" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
-    <a class="brand" href="/">Yi Cai <span data-i18n="brand"></span></a>
+    <a class="brand" href="https://escapetiger.github.io/">Yi Cai <span data-i18n="brand"></span></a>
     <select id="locale" aria-label="Interface language"><option value="zh">中文</option><option value="en">English</option></select>
   </header>
   <main>
@@ -29,7 +29,13 @@
       <p class="eyebrow">YI CAI / BLOG</p>
       <h1 data-i18n="loginHeading"></h1><p class="muted" data-i18n="loginIntro"></p>
       <p data-notice role="status" hidden></p>
-      <form id="login-form" class="surface">
+      <div id="github-login-panel" class="surface" hidden>
+        <p data-i18n="githubLoginHelp"></p>
+        <a id="github-login" class="button primary full" href="/admin/auth/login" data-i18n="githubLogin"></a>
+        <p class="hint" data-i18n="githubSessionHelp"></p>
+      </div>
+      <button id="login-retry" class="quiet" data-i18n="retryLogin"></button>
+      <form id="login-form" class="surface" hidden>
         <label for="token" data-i18n="token"></label>
         <input id="token" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" required>
         <p class="hint" data-i18n="tokenHelp"></p>
@@ -75,7 +81,7 @@
       <div class="editor-topbar">
         <button id="back" class="quiet" data-i18n="back"></button>
         <div class="editor-heading"><strong id="editor-title"></strong><span id="article-state" class="badge"></span></div>
-        <details id="more-menu" class="more-menu"><summary data-i18n="more"></summary><div class="menu-panel"><button id="export" data-i18n="export"></button><button id="backup-copy" data-i18n="backupCopy"></button><button id="editor-backups" data-i18n="backups"></button><button id="retract" class="danger" data-i18n="retract" hidden></button></div></details>
+        <details id="more-menu" class="more-menu"><summary data-i18n="more"></summary><div class="menu-panel"><button id="reauth" data-i18n="reauth" hidden></button><button id="export" data-i18n="export"></button><button id="backup-copy" data-i18n="backupCopy"></button><button id="editor-backups" data-i18n="backups"></button><button id="retract" class="danger" data-i18n="retract" hidden></button></div></details>
       </div>
       <nav class="editor-tabs" aria-label="Editor"><button type="button" data-tab="body" aria-pressed="true" data-i18n="body"></button><button type="button" data-tab="preview" aria-pressed="false" data-i18n="preview"></button><button type="button" data-tab="info" aria-pressed="false" data-i18n="info"></button><button type="button" data-tab="advanced" aria-pressed="false" data-i18n="advanced"></button></nav>
       <p data-notice class="editor-notice" role="status" hidden></p>
