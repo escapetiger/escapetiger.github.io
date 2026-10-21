@@ -3,7 +3,7 @@
   position: fixed;
   width: 0;
   height: 0;
-  transform: scale(.7);
+  transform: scale(.5);
   z-index: 1000;
   color: #2b3028;
   pointer-events: none;
