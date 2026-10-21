@@ -5,16 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="referrer" content="no-referrer">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://api.github.com; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://api.github.com; frame-src 'self'; img-src 'self' blob:; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Blog Editor">
   <meta name="theme-color" content="#f5f3ee">
   <title>Blog Editor · Yi Cai</title>
   <link rel="icon" href="/favicon/favicon.ico">
   <link rel="apple-touch-icon" href="/favicon/apple-touch-icon.png">
-  <link rel="stylesheet" href="admin.css?v=2">
+  <link rel="stylesheet" href="admin.css?v=3">
   <script src="vendor/js-yaml.min.js" defer></script>
-  <script src="app.mjs?v=2" type="module"></script>
+  <script src="vendor/markdown-it.min.js" defer></script>
+  <script src="vendor/purify.min.js" defer></script>
+  <script src="vendor/katex/katex.min.js" defer></script>
+  <script src="app.mjs?v=3" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
@@ -68,15 +71,21 @@
       <div class="editor-topbar">
         <button id="back" class="quiet" data-i18n="back"></button>
         <div class="editor-heading"><strong id="editor-title"></strong><span id="article-state" class="badge"></span></div>
-        <details id="more-menu" class="more-menu"><summary data-i18n="more"></summary><div class="menu-panel"><button id="export" data-i18n="export"></button><button id="retract" class="danger" data-i18n="retract" hidden></button></div></details>
+        <details id="more-menu" class="more-menu"><summary data-i18n="more"></summary><div class="menu-panel"><button id="export" data-i18n="export"></button><button id="backup-copy" data-i18n="backupCopy"></button><button id="editor-backups" data-i18n="backups"></button><button id="retract" class="danger" data-i18n="retract" hidden></button></div></details>
       </div>
-      <nav class="editor-tabs" aria-label="Editor"><button type="button" data-tab="body" aria-pressed="true" data-i18n="body"></button><button type="button" data-tab="info" aria-pressed="false" data-i18n="info"></button><button type="button" data-tab="advanced" aria-pressed="false" data-i18n="advanced"></button></nav>
+      <nav class="editor-tabs" aria-label="Editor"><button type="button" data-tab="body" aria-pressed="true" data-i18n="body"></button><button type="button" data-tab="preview" aria-pressed="false" data-i18n="preview"></button><button type="button" data-tab="info" aria-pressed="false" data-i18n="info"></button><button type="button" data-tab="advanced" aria-pressed="false" data-i18n="advanced"></button></nav>
       <p data-notice class="editor-notice" role="status" hidden></p>
       <div class="editor-content">
         <div id="body-panel" class="body-panel" data-panel="body">
+          <div class="writing-tools" role="group" aria-label="Markdown">
+            <button type="button" data-insert="heading" aria-label="Heading">H2</button><button type="button" data-insert="bold" aria-label="Bold"><strong>B</strong></button><button type="button" data-insert="link" data-i18n="insertLink"></button><button type="button" data-insert="list" data-i18n="insertList"></button><button type="button" data-insert="math" data-i18n="insertMath"></button><button id="insert-image" type="button" data-i18n="insertImage"></button>
+            <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+          </div>
+          <div id="image-tray" class="image-tray" hidden></div>
           <label class="sr-only" for="source" data-i18n="body"></label>
           <textarea id="source" spellcheck="false" autocapitalize="none" autocomplete="off" autocorrect="off"></textarea>
         </div>
+        <div id="preview-panel" class="preview-panel" data-panel="preview" hidden><p class="hint preview-hint" data-i18n="previewHelp"></p><iframe id="preview-frame" title="Article preview" sandbox="allow-same-origin" src="preview.html?v=3"></iframe></div>
         <div id="info-panel" class="form-panel" data-panel="info" hidden>
           <label for="title" data-i18n="title"></label><input id="title" required>
           <label for="date" data-i18n="date"></label><input id="date" type="date">
@@ -91,6 +100,10 @@
         </div>
       </div>
       <footer class="editor-footer"><p id="backup-status" role="status"></p><div class="actions"><button id="save-draft" data-i18n="saveDraft"></button><button id="publish" class="primary" data-i18n="publish"></button></div></footer>
+    </section>
+    <section id="backups-view" class="view" hidden>
+      <button id="backups-back" class="quiet back" data-i18n="cancel"></button><div class="page-heading"><h1 data-i18n="backups"></h1><button id="backups-refresh" data-i18n="refresh"></button></div>
+      <p class="hint" data-i18n="backupsHelp"></p><p data-notice role="status" hidden></p><div id="backups-list" class="backups-list"></div>
     </section>
     <section id="result-view" class="view narrow" hidden>
       <p class="eyebrow" data-i18n="progress"></p><h1 data-i18n="resultHeading"></h1>

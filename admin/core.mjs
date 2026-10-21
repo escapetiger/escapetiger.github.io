@@ -193,8 +193,15 @@ export class GitHub {
       Uint8Array.from(atob(blob.content.replace(/\s/g, '')), c => c.charCodeAt(0)));
   }
 
-  async save({ originalPath, originalSha, path, text, action }) {
+  async save({ originalPath, originalSha, path, text, action, images = [] }) {
     const prepared = preparePost(text, path, action);
+    if (images.length > 8 || new Set(images.map(image => image.path)).size !== images.length ||
+        images.reduce((sum, image) => sum + (image.content?.length || 0), 0) > 16 * 1024 * 1024 + 32) throw new Error('Too many images.');
+    for (const image of images) {
+      if (!/^static\/images\/blog\/[a-z0-9-]{16,80}\.(jpg|png|webp)$/.test(image.path) ||
+          typeof image.content !== 'string' || !image.content || image.content.length > 4 * 1024 * 1024 ||
+          !/^[A-Za-z0-9+/]+={0,2}$/.test(image.content)) throw new Error('Invalid image upload.');
+    }
     if (originalPath) postPath(originalPath);
     const state = await this.snapshot();
     const original = state.files.find(file => file.path === originalPath);
@@ -207,6 +214,12 @@ export class GitHub {
     }
     const blob = await this.request('git/blobs', 'POST', { content: prepared.text, encoding: 'utf-8' });
     const entries = [{ path: prepared.path, mode: '100644', type: 'blob', sha: blob.sha }];
+    for (const image of images) {
+      const media = await this.request('git/blobs', 'POST', { content: image.content, encoding: 'base64' });
+      const existing = state.files.find(file => file.path === image.path);
+      if (existing && (existing.sha !== media.sha || existing.mode !== '100644')) throw new Error('An image already exists at that path. No article changes were committed.');
+      if (!existing) entries.push({ path: image.path, mode: '100644', type: 'blob', sha: media.sha });
+    }
     if (originalPath && originalPath !== prepared.path) {
       entries.push({ path: originalPath, mode: '100644', type: 'blob', sha: null });
     }

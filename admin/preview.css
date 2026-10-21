@@ -1,0 +1,15 @@
+/* Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details. */
+:root { color-scheme: light dark; }
+body { margin: 0; padding: 24px; background: #fffefa; color: #25382f; font: 16px/1.85 system-ui, -apple-system, sans-serif; overflow-wrap: anywhere; }
+article { max-width: 740px; margin: auto; }
+h1 { font: 600 28px/1.4 Georgia, 'Songti SC', serif; }
+h2,h3 { line-height: 1.5; margin-top: 1.6em; }
+a { color: #285a44; }
+pre { padding: 14px; background: #edf0e9; overflow-x: auto; border-radius: 8px; }
+code { font: .9em/1.7 ui-monospace, monospace; }
+blockquote { margin-left: 0; padding-left: 18px; border-left: 3px solid #b1bea6; }
+img { max-width: 100%; height: auto; border-radius: 8px; }
+table { border-collapse: collapse; display: block; overflow-x: auto; }
+th,td { border: 1px solid #b1bea6; padding: 6px 10px; }
+.katex-display { overflow-x: auto; overflow-y: hidden; padding-block: 5px; }
+@media (prefers-color-scheme: dark) { body { background: #232c26; color: #e8eee5; } a { color: #a1c8ad; } pre { background: #354637; } }

@@ -86,3 +86,24 @@ body[data-keyboard=true] .editor-footer { padding-bottom: 8px; }
 @media (max-width: 600px) { .article-grid { grid-template-columns: 1fr; gap: 10px; } .article-card { min-height: 130px; } .brand span { display: none; } .surface { padding: 20px; } .editor-shell { border: 0; } }
 @media (prefers-reduced-motion: no-preference) { button { transition: border-color .15s, background-color .15s; } }
 @media (prefers-color-scheme: dark) { :root { --bg: #1b221e; --card: #232c26; --ink: #e8eee5; --muted: #a3afa4; --line: #3e4b40; --accent: #a1c8ad; --soft: #354637; --error: #ffb0a1; } .primary { color: #18291e; } }
+/* Preview and attachment controls share the editor's keyboard-aware layout. */
+.editor-tabs { overflow-x: auto; gap: 18px; }
+.editor-tabs button { flex-shrink: 0; }
+.body-panel { flex-direction: column; }
+#source { flex: 1; min-height: 0; height: auto; }
+.writing-tools { display: flex; flex-shrink: 0; gap: 3px; overflow-x: auto; border-bottom: 1px solid var(--line); padding: 4px 12px; }
+.writing-tools button { min-height: 38px; padding: 6px 11px; flex-shrink: 0; border: 0; background: transparent; font-size: 13px; }
+.preview-panel { height: 100%; display: flex; flex-direction: column; }
+.preview-hint { flex-shrink: 0; margin: 8px 18px; font-size: 11px; }
+#preview-frame { flex: 1; min-height: 0; width: 100%; border: 0; background: var(--card); }
+.image-tray { flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 6px 16px; overflow-x: auto; border-bottom: 1px solid var(--line); max-height: 70px; font-size: 11px; }
+.image-tray button { padding: 2px; min-height: 44px; }
+.image-tray img { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; }
+.backups-list { display: grid; gap: 14px; margin-top: 18px; }
+.backup-card { padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow-wrap: anywhere; }
+.backup-card h2 { margin-top: 0; font-size: 18px; }
+.backup-actions, .backup-images { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.backup-actions button, .backup-images button { font-size: 13px; }
+.backup-card summary { cursor: pointer; padding: 12px 0; font-size: 14px; }
+.version-button { display: block; width: 100%; margin-top: 6px; justify-content: space-between; text-align: left; font-size: 13px; }
+body[data-keyboard=true] .image-tray { display: none; }
