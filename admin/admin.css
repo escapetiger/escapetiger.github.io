@@ -228,3 +228,80 @@ body[data-embedded=true] #github-login-panel { display: none; }
 .cv-edit-section[open] > summary > input { display: inline-block; }
 .cv-edit-section > summary > input:focus { border-color: var(--line); }
 .data-fields > [data-add-section] { margin-top: 16px; }
+
+/* A quiet data workspace: hierarchy comes from spacing and paper tone. */
+button, .button, input, select, textarea, .surface, .data-section, .data-entry, .data-actions, .editor-shell, .editor-footer, .writing-tools { border: 0; box-shadow: none; }
+button, .button { background: transparent; }
+button:hover, .button:hover { background: var(--ink-wash); }
+.primary { color: var(--accent); background: transparent; }
+.primary:hover { filter: none; background: var(--ink-accent-soft); }
+input, select, textarea { background: var(--ink-wash); border-radius: var(--radius); }
+.workspace-header { position: sticky; top: 0; z-index: 15; min-height: 60px; display: flex; align-items: center; gap: 4px; padding: 8px 16px; background: var(--bg); }
+.workspace-header h1 { margin: 0; font: 700 17px/1.5 var(--font-heading); }
+body[data-embedded=true] .workspace-header { padding-right: 64px; }
+.workspace-header .editor-tabs { min-width: 0; padding: 0; gap: 18px; border: 0; flex: 1; scrollbar-width: none; }
+.workspace-header .editor-tabs button { padding: 0 1px; min-height: 44px; border: 0; font-size: 13px; }
+.workspace-header .editor-tabs button[aria-pressed=true] { color: var(--accent); text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; }
+.preview-toggle { padding: 0 6px; min-height: 44px; font-size: 12px; flex-shrink: 0; }
+.preview-toggle[aria-pressed=true] { color: var(--accent); }
+body[data-view=login] .workspace-header { display: none; }
+body[data-view=editor] .workspace-header { position: fixed; inset-inline: 0; top: calc(var(--editor-top) + var(--nav-height, 0px)); }
+body[data-embedded=true] main { padding: 12px 18px 0; }
+body[data-embedded=true] .editor-shell,
+.editor-shell { border: 0; top: calc(var(--editor-top) + var(--nav-height, 0px) + var(--workspace-height, 60px)); height: var(--editor-height); background: var(--bg); }
+body[data-view=editor][data-embedded=true] .editor-shell { top: var(--workspace-height, 60px); }
+.editor-content { overflow: auto; }
+.editor-content .form-panel { width: 100%; max-width: none; padding: 12px 20px 24px; }
+.prose-panel { height: 100%; }
+.prose-panel textarea { display: block; width: 100%; height: 100%; min-height: 120px; margin: 0; padding: 10px 0; resize: none; background: transparent; font: 17px/1.9 var(--font-body); }
+#source { padding: 16px 20px; font: 17px/1.9 var(--font-body); }
+.writing-tools { padding-inline: 14px; }
+.writing-tools button { font-weight: 700; }
+#preview-panel { display: none; }
+body[data-preview=true] .editor-content > [data-panel] { display: none; }
+body[data-preview=true] #preview-panel { display: flex; }
+.editor-footer { background: var(--bg); padding: 8px 14px max(8px, env(safe-area-inset-bottom)); }
+.editor-footer .actions { justify-content: space-between; gap: 4px; }
+.editor-footer .actions button { min-width: 0; padding-inline: 8px; }
+#backup-status.sr-only { margin: 0; min-height: 0; }
+.file-actions { display: flex; justify-content: space-between; gap: 8px; }
+.file-actions button { padding: 0 4px; }
+.data-fields > label { margin-bottom: 16px; color: var(--muted); font-size: 12px; }
+.data-section { padding: 8px 0; }
+.data-section > summary { font-size: 17px; color: var(--ink); }
+.data-entry { margin: 4px 0 10px; padding: 0; border-radius: var(--radius); background: transparent; }
+.data-entry > summary { display: grid; grid-template-columns: 26px minmax(0, 1fr) 14px; column-gap: 8px; align-items: start; min-height: 54px; padding: 12px 8px; list-style: none; font-size: 15px; }
+.data-entry > summary::-webkit-details-marker { display: none; }
+.data-entry > summary::after { content: '+'; grid-column: 3; grid-row: 1; color: var(--muted); text-align: center; }
+.data-entry[open] > summary::after { content: '−'; }
+.data-entry-number { grid-column: 1; grid-row: 1 / 3; color: var(--muted); font: 12px/1.9 var(--font-mono); }
+.data-entry-title { grid-column: 2; font-weight: 600; overflow-wrap: anywhere; }
+.data-entry-meta { grid-column: 2; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.data-entry:hover, .data-entry[open] { background: var(--ink-wash); }
+.data-properties { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 0 14px; padding: 0 12px; }
+.data-properties > label { min-width: 0; color: var(--muted); font-size: 12px; }
+.data-properties > label[data-property=title], .data-properties > label[data-property=authors], .data-properties > label[data-property=detail] { grid-column: 1 / -1; }
+.data-properties textarea { font-family: var(--font-body); font-size: 15px; line-height: 1.7; min-height: 44px; padding: 8px; }
+.data-properties input, .data-properties select { font-size: 15px; padding: 8px; }
+.data-entry > .danger { margin-left: 12px; padding-inline: 4px; font-size: 12px; }
+.data-fields button { font-size: 13px; }
+.cv-edit-section > summary input:focus { border: 0; }
+body[data-embedded=true] .data-actions { bottom: 0; margin-top: 16px; padding: 8px 0 max(8px, env(safe-area-inset-bottom)); justify-content: space-between; flex-wrap: nowrap; }
+.data-actions button { padding-inline: 8px; min-width: 0; }
+.article-grid { display: block; margin-top: 12px; }
+.library-actions { display: flex; justify-content: flex-end; }
+.library-actions button { min-height: 40px; padding: 0 4px; }
+.taxonomy-filters { gap: 6px; }
+.taxonomy-filters select { font-size: 12px; }
+#search, .filter-row select { font-size: 14px; }
+@media (max-width: 359px) { .workspace-header .editor-tabs { gap: 13px; } .workspace-header .editor-tabs button { font-size: 12px; } }
+body[data-view=data] main, body[data-view=home] main { padding-bottom: 90px; }
+body[data-embedded=true][data-view=data] .data-actions,
+body[data-embedded=true][data-view=home] .data-actions { position: fixed; left: 18px; right: 18px; bottom: 0; margin: 0; }
+.data-fields :is(input, select, textarea) { font-size: 15px; line-height: 1.7; }
+.workspace-header .editor-tabs button:hover { background: transparent; }
+.cv-edit-section > summary { display: flex; align-items: center; gap: 8px; list-style: none; line-height: 1.5; min-height: 52px; }
+.cv-edit-section > summary::-webkit-details-marker { display: none; }
+.cv-edit-section > summary::after { content: '+'; margin-left: auto; color: var(--muted); font-size: 16px; font-weight: 400; }
+.cv-edit-section[open] > summary::after { content: '−'; }
+.cv-edit-section > summary input { flex: 1; min-width: 0; }

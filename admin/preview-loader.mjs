@@ -9,7 +9,7 @@ function script(source, name) {
       clearTimeout(timer); element.onload = element.onerror = null;
       if (error) { element.remove(); reject(error); } else resolve();
     };
-    const timer = setTimeout(() => finish(new Error('Preview resource timed out. Retry the Preview tab.')), 20000);
+    const timer = setTimeout(() => finish(new Error('Preview resource timed out. Retry the preview.')), 20000);
     element.src = source; element.async = true;
     element.onload = () => finish(globalThis[name] ? null : new Error('Preview resource is unavailable.'));
     element.onerror = () => finish(new Error('Cannot load preview. Check the connection and retry.'));
@@ -31,7 +31,7 @@ function frameReady(frame) {
       if (frame.contentDocument?.getElementById('content')) finish();
     };
     const failed = () => finish(new Error('Cannot load article preview.'));
-    const timer = setTimeout(() => finish(new Error('Preview timed out. Retry the Preview tab.')), 20000);
+    const timer = setTimeout(() => finish(new Error('Preview timed out. Retry the preview.')), 20000);
     frame.addEventListener('load', loaded); frame.addEventListener('error', failed);
     frame.src = frame.dataset.src || frame.getAttribute('src') || 'preview.html?v=6';
   });

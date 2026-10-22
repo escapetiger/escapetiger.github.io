@@ -1,18 +1,19 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
+import { articleSections, replaceArticleSection } from './article-sections.mjs?v=24';
 import { newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=19';
+import { messages } from './messages.mjs?v=24';
 import { BackupStore } from './backups.mjs?v=11';
 import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
 import { renderPreview } from './preview.mjs?v=6';
 import { RepositoryCache } from './read-cache.mjs?v=9';
-import { loadPreview } from './preview-loader.mjs?v=9';
+import { loadPreview } from './preview-loader.mjs?v=24';
 import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=11';
 import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
 import { entryFrom, pagePath } from './routes.mjs?v=18';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=22';
+import { DataEditor, dataPath } from './data-editor.mjs?v=24';
 
 const parameters = new URL(location.href).searchParams;
 const embedded = parameters.get('embedded') === '1' && window.parent !== window;
@@ -25,6 +26,7 @@ const $ = id => document.getElementById(id);
 const pendingKey = 'yicai-blog-publication-v1', backups = new BackupStore();
 const sourceRepo = 'https://github.com/escapetiger/hugo-yicai';
 let locale = embedded || parameters.has('return') ? entry.lang : preferredLocale(navigator.language);
+let baseline, previewTimer, previewEpoch = 0;
 let api, files = [], cache = new Map(), libraryEpoch = 0, hydrationEpoch = 0, listing = false, view = 'login', tab = 'body';
 let documentText = '', originalPath = null, originalSha = null, savedState = 'draft', dirty = false, busy = false;
 let pending = null, progressState = { stage: 'queued' }, pollTimer, checking = false, pollEpoch = 0;
@@ -80,6 +82,7 @@ function setView(next, push = true) {
   if (next === 'editor' && !documentText) next = 'library';
   if (next === 'result' && !pending) next = 'library';
   view = next;
+  if (next !== 'editor') { clearTimeout(previewTimer); ++previewEpoch; }
   if (next !== 'library') ++hydrationEpoch;
   if (['library', 'editor', 'new', 'backups'].includes(next)) section = 'blog';
   if (next === 'result') section = pending?.kind || 'blog';
@@ -89,7 +92,7 @@ function setView(next, push = true) {
   document.body.dataset.view = next;
   if (next === 'editor') window.scrollTo(0, 0);
   document.querySelectorAll('.view').forEach(node => { node.hidden = node.id !== `${next}-view`; });
-  $('more-menu').open = false;
+  renderWorkspace();
   notice();
   const state = { editorView: next, section };
   if (!embedded) {
@@ -130,7 +133,7 @@ function queueBackup(checkpoint = false) {
     if (session === backupSession) $('backup-status').textContent = t('backup');
   });
   backupQueue = task;
-  task.catch(error => { if (session === backupSession) $('backup-status').textContent = t(error.code === 'BACKUP_CONFLICT' ? 'backupConflict' : 'backupFailed'); });
+  task.catch(error => { if (session === backupSession) { const message = t(error.code === 'BACKUP_CONFLICT' ? 'backupConflict' : 'backupFailed'); $('backup-status').textContent = message; notice(message, true); } });
   return task;
 }
 function backup() {
@@ -141,19 +144,29 @@ async function flushBackup(checkpoint = false) {
   clearTimeout(backupTimer);
   try { await queueBackup(checkpoint); return true; } catch { return false; }
 }
-function changed() { safeToLeave = false; dirty = true; if (backupSession) { backupSession.touched = true; backupSession.suppressed = false; } backup(); }
+function changed() { safeToLeave = false; dirty = true; if (backupSession) { backupSession.touched = true; backupSession.suppressed = false; } backup(); schedulePreview(); }
+function schedulePreview() { clearTimeout(previewTimer); if (view === 'editor') previewTimer = setTimeout(() => void updatePreview(), 160); }
+function renderWorkspace() {
+  const editing = view === 'editor';
+  $('workspace-title').textContent = t(editing ? 'body' : section === 'cv' ? 'navCV' : section === 'publications' ? 'navPublications' : section === 'blog' ? 'navBlog' : view === 'login' ? 'loginHeading' : 'homeHeading');
+  $('workspace-title').hidden = editing; $('workspace-tabs').hidden = !editing;
+  $('article-preview-toggle').hidden = !editing || document.body.dataset.compact !== 'true';
+  tellParent({ type: 'editor-workspace', article: editing, path: originalPath || $('path').value });
+  if (editing) schedulePreview();
+}
 function renderLocale() {
   if (api instanceof SessionGitHub) api.expiredMessage = t('sessionExpired');
   document.documentElement.lang = locale; $('locale').textContent = locale === 'zh' ? 'En' : 'Zh';
   $('locale').setAttribute('aria-label', locale === 'zh' ? 'Switch to English' : '切换为中文');
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
   $('search').placeholder = t('search');
-  renderLibraryFilters(); renderCards(); renderEditorHeading(); renderProgress();
+  renderLibraryFilters(); renderCards(); renderProgress();
   $('theme-toggle').setAttribute('aria-label', t('toggleTheme'));
   $('theme-toggle').title = t('toggleTheme');
   $('preview-frame').title = t('preview');
   previewHome();
-  if (tab === 'preview') updatePreview();
+  $('abstract-source').placeholder = t('abstractPlaceholder'); $('references-source').placeholder = t('referencesPlaceholder');
+  renderWorkspace();
   if (view === 'backups') void showBackups();
   if (view === 'data') dataEditor.render();
   if (view === 'home') homeEditor.render();
@@ -178,32 +191,21 @@ function renderCards() {
     category: $('filter-category').value, tag: $('filter-tag').value, year: $('filter-year').value });
   const cards = filtered.map(file => {
     const entry = cache.get(file.sha), metadata = entry?.post?.metadata || {};
-    const card = document.createElement('button');
-    card.type = 'button'; card.className = 'article-card'; card.dataset.path = file.path; card.lang = locale;
+    const card = document.createElement('article'); card.className = 'pub-card article-card'; card.dataset.path = file.path; card.lang = locale;
     const state = articleState(file.path, metadata), date = articleDate(metadata, locale);
-    const top = document.createElement('span'); top.className = 'card-top';
-    const badge = document.createElement('span'); badge.className = 'badge'; badge.dataset.state = state; badge.textContent = t(state);
-    const time = document.createElement('time'); time.className = 'card-date'; time.textContent = date?.label || t('undated');
-    if (date) time.dateTime = date.iso;
-    top.append(badge, time);
-    const title = document.createElement('strong'); title.className = 'card-title';
-    title.textContent = typeof metadata.title === 'string' ? metadata.title : file.path.split('/').at(-1).replace(/\.md$/, '');
-    const summary = document.createElement('span'); summary.className = 'card-summary'; summary.textContent = articleSummary(entry?.post); summary.hidden = !summary.textContent;
-    const taxonomies = document.createElement('span'); taxonomies.className = 'card-taxonomies';
-    for (const [key, values] of [['categories', taxonomyTerms(metadata.categories)], ['tags', taxonomyTerms(metadata.tags)]]) {
-      const row = document.createElement('span'); row.className = `card-${key}`;
-      const label = document.createElement('span'); label.className = 'taxonomy-label'; label.textContent = t(key); row.append(label);
-      for (const value of values.length ? values : [t(key === 'categories' ? 'uncategorized' : 'noTags')]) {
-        const chip = document.createElement('span'); chip.className = 'taxonomy-chip'; chip.textContent = value; row.append(chip);
-      }
-      taxonomies.append(row);
-    }
-    const footer = document.createElement('span'); footer.className = 'card-footer';
-    const detail = document.createElement('span'); detail.className = 'card-path';
-    detail.textContent = entry?.error ? t('retryArticle') : file.path.replace(`content/blog/${locale}/`, '');
-    const edit = document.createElement('span'); edit.className = 'card-edit'; edit.textContent = `${t('editArticle')} →`;
-    footer.append(detail, edit); card.append(top, title, summary, taxonomies, footer);
-    card.addEventListener('click', () => openArticle(file)); return card;
+    const top = document.createElement('div'); top.className = 'pub-card-top';
+    const tags = document.createElement('div'); tags.className = 'pub-tags';
+    for (const value of taxonomyTerms(metadata.tags)) { const tag = document.createElement('span'); tag.className = 'pub-badge'; tag.textContent = value; tags.append(tag); }
+    const time = document.createElement('time'); time.className = 'pub-year'; time.textContent = date?.label || t('undated'); if (date) time.dateTime = date.iso;
+    top.append(tags, time);
+    const heading = document.createElement('h3'); heading.className = 'pub-title';
+    const title = document.createElement('button'); title.type = 'button'; title.textContent = typeof metadata.title === 'string' ? metadata.title : file.path.split('/').at(-1).replace(/\.md$/, '');
+    title.addEventListener('click', () => void openArticle(file)); heading.append(title);
+    const summary = document.createElement('div'); summary.className = 'pub-venue note-summary'; summary.textContent = articleSummary(entry?.post); summary.hidden = !summary.textContent;
+    const footer = document.createElement('div'); footer.className = 'pub-links';
+    const kind = document.createElement('span'); kind.className = 'article-kind'; kind.dataset.state = state; kind.textContent = t(state === 'draft' ? 'draftKind' : 'postKind');
+    const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'blog-read-btn'; edit.textContent = `${t('editArticle')} →`; edit.addEventListener('click', () => void openArticle(file));
+    footer.append(kind, edit); card.append(top, heading, summary, footer); return card;
   });
   if (!cards.length) {
     const empty = document.createElement('p'); empty.className = 'muted'; empty.textContent = t(listing ? 'loading' : 'noArticles'); cards.push(empty);
@@ -252,25 +254,20 @@ async function refresh() {
     if (view === 'library') void hydrate(client);
   } finally { if (client === api && epoch === libraryEpoch) { listing = false; renderCards(); } }
 }
-function renderEditorHeading() {
-  let title;
-  try { title = readPost(documentText).metadata.title; } catch { /* Raw edits may temporarily be invalid. */ }
-  $('editor-title').textContent = typeof title === 'string' && title.trim() ? title : t('emptyTitle');
-  $('article-state').textContent = t(savedState);
-  let meta = {}; try { meta = readPost(documentText).metadata; } catch { /* Invalid raw edits stay editable. */ }
-  $('editor-meta').textContent = [articleDate(meta, locale)?.label, ...taxonomyTerms(meta.categories), ...taxonomyTerms(meta.tags).map(tag => `#${tag}`)].filter(Boolean).join(' · ');
-  $('save-draft').hidden = savedState !== 'draft';
-  $('retract').hidden = savedState === 'draft';
-  $('publish').textContent = t(savedState === 'draft' ? 'publish' : 'publishUpdate');
+function articleDetails(metadata) {
+  return [articleDate(metadata, locale)?.label, ...taxonomyTerms(metadata.categories), ...taxonomyTerms(metadata.tags).map(tag => `#${tag}`)].filter(Boolean).join(' · ');
 }
+function fieldValue(id, value) { if ($(id).value !== value) $(id).value = value; }
 function fillFields() {
   const post = readPost(documentText), meta = post.metadata;
-  $('source').value = post.body;
+  const parts = articleSections(post.body);
+  fieldValue('source', parts.body); fieldValue('abstract-source', parts.abstract); fieldValue('references-source', parts.references);
+  $('publication-state').value = meta.draft === true ? 'draft' : 'public';
   $('title').value = typeof meta.title === 'string' ? meta.title : '';
   $('date').value = typeof meta.date === 'string' ? meta.date.slice(0, 10) : '';
   $('tags').value = tagsText(meta.tags); $('categories').value = tagsText(meta.categories);
-  $('raw-source').value = documentText;
-  renderEditorHeading();
+  fieldValue('raw-source', documentText);
+  renderWorkspace();
 }
 function syncInformation() {
   const meta = readPost(documentText).metadata;
@@ -283,19 +280,16 @@ function syncInformation() {
   documentText = updatePost(documentText, values);
 }
 function selectTab(next) {
-  if (tab === 'info') {
-    try { syncInformation(); }
-    catch (error) { notice(`${t('error')}${error.message}`, true); return false; }
-  }
-  if (next !== 'advanced') {
+  if (!['file', 'abstract', 'body', 'references', 'settings'].includes(next)) return false;
+  if (next !== 'file') {
     try { fillFields(); }
     catch (error) { notice(`${t('rawInvalid')}\n${error.message}`, true); return false; }
-  } else $('raw-source').value = documentText;
+  } else fieldValue('raw-source', documentText);
   tab = next;
   document.querySelectorAll('[data-tab]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.tab === next)));
   document.querySelectorAll('[data-panel]').forEach(node => { node.hidden = node.dataset.panel !== next; });
-  notice();
-  if (next === 'preview') updatePreview();
+  notice(); schedulePreview();
+  document.body.dataset.preview = 'false'; $('article-preview-toggle').setAttribute('aria-pressed', 'false');
   return true;
 }
 async function showEditor(path, text, loadedPath, sha, state, context) {
@@ -318,6 +312,7 @@ async function showEditor(path, text, loadedPath, sha, state, context) {
       if (image?.blob) assets.push({ ...asset, blob: image.blob, persisted: true });
     }
   }
+  baseline = { text: cache.get(sha)?.text || text, path: loadedPath || path, state: state || articleState(loadedPath || path, readPost(text).metadata) };
   const recovered = !context && existing?.dirty && existing.originalPath === loadedPath && existing.originalSha === sha && articleLanguage(existing.path) === locale ? existing : null;
   if (recovered) { path = recovered.path; text = recovered.text; state = recovered.savedState; }
   documentText = text; originalPath = loadedPath; originalSha = sha;
@@ -329,9 +324,9 @@ async function showEditor(path, text, loadedPath, sha, state, context) {
   setView('editor');
   tab = 'body';
   if (!selectTab('body')) {
-    selectTab('advanced'); notice(t('rawInvalid'), true);
+    selectTab('file'); notice(t('rawInvalid'), true);
   }
-  renderEditorHeading();
+  renderWorkspace();
   updateImageTray();
   if (!recovered && existing?.dirty && existing.text !== text) notice(t('backupAvailable'));
 }
@@ -374,15 +369,18 @@ function updateImageTray() {
   $('image-tray').replaceChildren(label, ...thumbs);
 }
 async function updatePreview() {
+  if (view !== 'editor' || !documentText) return;
+  const generation = ++previewEpoch;
   try {
     const frame = $('preview-frame');
     frame.setAttribute('aria-busy', 'true'); if ($('preview-loading')) $('preview-loading').hidden = false;
     await loadPreview(frame);
-    if (tab !== 'preview' || !documentText) return;
+    if (view !== 'editor' || !documentText || generation !== previewEpoch) return;
     const post = readPost(documentText), path = $('path').value.replace(/^(content\/blog\/(en|zh)\/)drafts\//, '$1');
     const base = new URL(articleURL(path, post.metadata) || '/', siteOrigin).href;
     const images = new Map(activeAssets().map(asset => [new URL(asset.url, siteOrigin).href, localImageURL(asset)]));
-    renderPreview($('preview-frame'), { body: post.body, title: post.metadata.title || '', details: $('editor-meta').textContent, base, images, locale });
+    const rendered = renderPreview($('preview-frame'), { body: post.body, title: post.metadata.title || '', details: articleDetails(post.metadata), base, images, locale });
+    if (rendered) { const doc = frame.contentDocument; tellParent({ type: 'editor-article-preview', html: doc.getElementById('content').innerHTML, title: post.metadata.title || '', details: articleDetails(post.metadata), locale }); }
   } catch (error) { notice(`${t('error')}${error.message}`, true); }
   finally { $('preview-frame').setAttribute('aria-busy', 'false'); if ($('preview-loading')) $('preview-loading').hidden = true; }
 }
@@ -441,12 +439,12 @@ async function chooseImages(event) {
       catch (error) { throw new Error(`${file.name}: ${t(error.message) || error.message}`); }
     }
     if ([...existing, ...prepared].reduce((sum, asset) => sum + asset.blob.size, 0) > MAX_TOTAL_BYTES) throw new Error(t('imageSize'));
-    const body = readPost(documentText).body;
+    const body = $('source').value;
     const start = Math.min(imageSelection.start, body.length), end = Math.min(imageSelection.end, body.length);
     const markup = prepared.map(asset => `![${asset.name.replace(/\.[^.]+$/, '').replace(/[\[\]\\\n\r]/g, '')}](${asset.url})`).join('\n\n');
     const insert = `\n\n${markup}\n\n`;
-    documentText = updatePost(documentText, {}, body.slice(0, start) + insert + body.slice(end));
-    assets.push(...prepared); dirty = true; backupSession.touched = true; backupSession.suppressed = false; fillFields(); updateImageTray();
+    documentText = updatePost(documentText, {}, replaceArticleSection(readPost(documentText).body, 'body', body.slice(0, start) + insert + body.slice(end), locale));
+    assets.push(...prepared); dirty = true; backupSession.touched = true; backupSession.suppressed = false; fillFields(); updateImageTray(); schedulePreview();
     $('source').setSelectionRange(start + insert.length, start + insert.length);
     const saved = await flushBackup(true);
     if (!saved) notice(t('backupFailed'), true);
@@ -537,7 +535,7 @@ async function checkProgress(manual = false) {
 async function save(action, retract = false) {
   if (busy) return;
   try {
-    if (tab === 'info') syncInformation();
+    if (tab === 'settings') syncInformation();
     const post = readPost(documentText);
     if (typeof post.metadata.title !== 'string' || !post.metadata.title.trim()) throw new Error(t('invalidTitle'));
     postPath($('path').value.trim());
@@ -571,9 +569,11 @@ async function save(action, retract = false) {
 function updateViewport() {
   const geometry = viewportGeometry(window.visualViewport, window.innerHeight);
   document.documentElement.style.setProperty('--editor-top', `${geometry.top}px`);
+  const workspaceHeight = Math.ceil(document.querySelector('.workspace-header').getBoundingClientRect().height);
+  document.documentElement.style.setProperty('--workspace-height', `${workspaceHeight}px`);
   const navHeight = Math.ceil(document.querySelector('.site-header').getBoundingClientRect().height);
   document.documentElement.style.setProperty('--nav-height', `${navHeight}px`);
-  document.documentElement.style.setProperty('--editor-height', `${Math.max(1, geometry.height - navHeight)}px`);
+  document.documentElement.style.setProperty('--editor-height', `${Math.max(1, geometry.height - navHeight - workspaceHeight)}px`);
   document.body.dataset.keyboard = String(geometry.height < window.innerHeight * .8 && (window.visualViewport?.scale || 1) < 1.2);
 }
 
@@ -608,12 +608,6 @@ async function connected() {
   tellParent({ type: 'editor-ready' });
   if (pending && !terminalStages.has(progressState.stage)) void checkProgress(true);
 }
-$('reauth').addEventListener('click', async () => {
-  if (await mayReplace()) {
-    if (embedded) tellParent({ type: 'editor-login' });
-    else location.assign(`/admin/auth/login?${new URLSearchParams({ return: returnPage })}`);
-  }
-});
 $('refresh').addEventListener('click', () => run(refresh));
 $('new').addEventListener('click', () => {
   $('new-title').value = ''; $('language').value = locale;
@@ -635,28 +629,21 @@ $('new-form').addEventListener('submit', async event => {
 });
 for (const button of document.querySelectorAll('[data-tab]')) button.addEventListener('click', () => selectTab(button.dataset.tab));
 $('source').addEventListener('input', () => {
-  try { documentText = updatePost(documentText, {}, $('source').value); changed(); updateImageTray(); }
+  try { documentText = updatePost(documentText, {}, replaceArticleSection(readPost(documentText).body, 'body', $('source').value, locale)); changed(); updateImageTray(); }
   catch (error) { notice(`${t('error')}${error.message}`, true); }
 });
 for (const id of ['title', 'date', 'tags', 'categories']) $(id).addEventListener('input', () => {
   try {
     syncInformation();
-    changed(); renderEditorHeading();
+    changed(); renderWorkspace();
   } catch (error) { notice(`${t('error')}${error.message}`, true); }
 });
-$('raw-source').addEventListener('input', () => { documentText = $('raw-source').value; changed(); renderEditorHeading(); });
+$('raw-source').addEventListener('input', () => { documentText = $('raw-source').value; changed(); renderWorkspace(); });
 $('path').addEventListener('input', changed);
 $('back').addEventListener('click', async () => { await flushBackup(true); setView('library'); });
 $('editor-backups').addEventListener('click', showBackups);
 $('backups-refresh').addEventListener('click', showBackups);
 $('backups-back').addEventListener('click', () => setView(backupsReturn));
-$('backup-copy').addEventListener('click', async () => {
-  await backupQueue.catch(() => {});
-  backupSession = { id: crypto.randomUUID(), revision: 0 }; assets.forEach(asset => { asset.persisted = false; });
-  backupSession.touched = true;
-  const saved = await flushBackup(true); $('more-menu').open = false;
-  notice(t(saved ? 'backupCopied' : 'backupFailed'), !saved);
-});
 function syncPreviewTheme() {
   const root = $('preview-frame').contentDocument?.documentElement;
   if (root) root.dataset.theme = document.documentElement.dataset.theme;
@@ -674,14 +661,34 @@ $('insert-image').addEventListener('click', () => {
   imageSelection = { start: $('source').selectionStart, end: $('source').selectionEnd }; $('image-input').click();
 });
 $('image-input').addEventListener('change', chooseImages);
-$('save-draft').addEventListener('click', () => save('draft'));
-$('publish').addEventListener('click', () => save('publish'));
-$('retract').addEventListener('click', () => save('draft', true));
+$('article-save').addEventListener('click', () => {
+  const action = $('publication-state').value === 'draft' ? 'draft' : 'publish';
+  void save(action, action === 'draft' && savedState !== 'draft');
+});
+$('article-reset').addEventListener('click', async () => {
+  if (!baseline || !confirm(t('articleResetConfirm'))) return;
+  documentText = baseline.text; $('path').value = baseline.path; savedState = baseline.state; dirty = false;
+  resetImageURLs(); assets = assets.filter(asset => documentText.includes(asset.url));
+  fillFields(); updateImageTray(); schedulePreview();
+  backupSession.touched = true; backupSession.suppressed = false; await flushBackup(true); backupSession.touched = false;
+});
+$('article-preview-toggle').addEventListener('click', () => {
+  const show = document.body.dataset.preview !== 'true'; document.body.dataset.preview = String(show);
+  $('article-preview-toggle').setAttribute('aria-pressed', String(show)); if (show) void updatePreview();
+});
+$('publication-state').addEventListener('change', () => {
+  try { documentText = updatePost(documentText, { draft: $('publication-state').value === 'draft' }); changed(); }
+  catch (error) { notice(`${t('error')}${error.message}`, true); }
+});
+for (const name of ['abstract', 'references']) $(`${name}-source`).addEventListener('input', () => {
+  try { documentText = updatePost(documentText, {}, replaceArticleSection(readPost(documentText).body, name, $(`${name}-source`).value, locale)); changed(); }
+  catch (error) { notice(`${t('error')}${error.message}`, true); }
+});
 $('check-status').addEventListener('click', () => checkProgress(true));
 $('continue-editing').addEventListener('click', () => { if (pending?.kind) { if (pending.kind === 'home') void openHome(); else void openSection(pending.kind); return; } if (documentText) setView('editor'); else void showBackups(); });
 $('result-back').addEventListener('click', () => { if (embedded) tellParent({ type: 'editor-close' }); else void openSection('blog'); });
 $('export').addEventListener('click', () => {
-  download(new Blob([documentText], { type: 'text/markdown;charset=utf-8' }), $('path').value.split('/').at(-1) || 'article.md'); $('more-menu').open = false;
+  download(new Blob([documentText], { type: 'text/markdown;charset=utf-8' }), $('path').value.split('/').at(-1) || 'article.md');
 });
 window.addEventListener('popstate', event => {
   const next = event.state?.editorView;
@@ -700,7 +707,8 @@ window.visualViewport?.addEventListener('resize', updateViewport);
 window.visualViewport?.addEventListener('scroll', updateViewport);
 window.addEventListener('resize', updateViewport);
 // Fonts, safe-area changes and compact header styles can resize navigation independently.
-new ResizeObserver(updateViewport).observe(document.querySelector('.site-header'));
+const workspaceObserver = new ResizeObserver(updateViewport);
+workspaceObserver.observe(document.querySelector('.site-header')); workspaceObserver.observe(document.querySelector('.workspace-header'));
 renderLocale(); setView('login', false);
 async function initializeLogin() {
   await run(async () => {
@@ -731,6 +739,8 @@ async function initializeLogin() {
 window.addEventListener('message', async event => {
   if (!embedded || event.origin !== location.origin || event.source !== window.parent) return;
   if (event.data?.type === 'site-appearance') {
+    document.body.dataset.compact = String(event.data.compact === true);
+    $('article-preview-toggle').hidden = view !== 'editor' || event.data.compact !== true;
     if (['dark', 'light'].includes(event.data.theme)) {
       document.documentElement.dataset.theme = event.data.theme;
       syncPreviewTheme();

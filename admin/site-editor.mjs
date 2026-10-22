@@ -7,7 +7,7 @@ if (menu && host) {
   const origin = new URL(host).origin, local = location.origin === origin;
   const { browseLabel, editLabel, editUrl, hideEditorLabel, showEditorLabel } = menu.dataset;
   const page = pagePath(location.pathname), zh = document.documentElement.lang.startsWith('zh');
-  let panel, frame, sidebarToggle, hidePanelTimer, collapsed = false, ready = false, active = false, checking = false, leaving = false, published, initialProfile, lastProfile;
+  let panel, frame, sidebarToggle, articlePreview, lastArticle, articlePath, article = false, hidePanelTimer, collapsed = false, ready = false, active = false, checking = false, leaving = false, published, initialProfile, lastProfile;
   const storedMode = () => { try { return sessionStorage.getItem('site-edit-mode') === 'edit'; } catch { return false; } };
   const remember = mode => { try { sessionStorage.setItem('site-edit-mode', mode); } catch { /* The current page still changes mode. */ } };
   let flushID = 0;
@@ -62,7 +62,8 @@ if (menu && host) {
     }
   }
   function appearance() {
-    frame?.contentWindow?.postMessage({ type: 'site-appearance', theme: document.documentElement.dataset.theme }, origin);
+    frame?.contentWindow?.postMessage({ type: 'site-appearance', theme: document.documentElement.dataset.theme, compact: innerWidth <= 800 }, origin);
+    if (articlePreview?.contentDocument?.documentElement) articlePreview.contentDocument.documentElement.dataset.theme = document.documentElement.dataset.theme;
   }
   function layout() {
     const root = document.documentElement, viewport = window.visualViewport;
@@ -70,6 +71,7 @@ if (menu && host) {
     root.style.setProperty('--site-editor-bottom', `${Math.max(0, innerHeight - ((viewport?.height || innerHeight) + (viewport?.offsetTop || 0)))}px`);
     const header = document.querySelector('.header');
     if (header) root.style.setProperty('--site-editor-top', `${Math.max(0, Math.ceil(header.getBoundingClientRect().bottom))}px`);
+    appearance();
   }
   function showPanel(show) {
     if (!panel) return;
@@ -95,6 +97,7 @@ if (menu && host) {
   function drawMode() {
     document.body.dataset.editorActive = String(active);
     document.body.dataset.editorCollapsed = String(active && collapsed);
+    document.body.dataset.editorArticle = String(article);
     menu.dataset.active = String(active);
     menu.setAttribute('aria-pressed', String(active));
     const label = active ? `${editLabel} · ${browseLabel}` : `${browseLabel} · ${editLabel}`;
@@ -109,6 +112,22 @@ if (menu && host) {
     if (active) { if (lastProfile) preview(lastProfile); appearance(); }
     else if (initialProfile) preview(initialProfile);
     layout();
+  }
+  function renderArticlePreview() {
+    const doc = articlePreview?.contentDocument;
+    if (!lastArticle || !doc?.getElementById('content')) return;
+    // Only the authenticated editor frame may supply sanitized preview markup.
+    // It stays in a script-free sandbox, never in the public page's DOM.
+    const scrollTop = articlePreview.contentWindow.scrollY;
+    doc.getElementById('content').innerHTML = lastArticle.html;
+    doc.getElementById('title').textContent = lastArticle.title;
+    doc.getElementById('metadata').textContent = lastArticle.details;
+    doc.documentElement.lang = lastArticle.locale;
+    doc.documentElement.dataset.theme = document.documentElement.dataset.theme;
+    articlePreview.contentWindow.scrollTo(0, scrollTop);
+    document.body.dataset.editorPreviewReady = 'true';
+    articlePreview.setAttribute('aria-busy', 'false');
+    doc.onclick = event => { if (event.target.closest('a')) event.preventDefault(); };
   }
   async function enable() {
     if (!page || checking) return;
@@ -136,7 +155,7 @@ if (menu && host) {
         document.body.append(panel, sidebarToggle);
         frame.addEventListener('load', appearance);
       }
-      active = true; collapsed = false; remember('edit'); history.replaceState(null, '', `${page}?mode=edit${location.hash}`); drawMode(); menu.focus({ preventScroll: true });
+      active = true; collapsed = false; remember('edit'); history.replaceState(null, '', `${page}?mode=edit${location.hash}`); drawMode();
     } catch (error) { alert(error.message); }
     finally { checking = false; menu.removeAttribute('aria-busy'); }
   }
@@ -154,6 +173,28 @@ if (menu && host) {
   window.addEventListener('message', event => {
     if (event.origin !== origin || event.source !== frame?.contentWindow) return;
     const message = event.data;
+    if (message?.type === 'editor-workspace') {
+      if (message.article === true && articlePath !== message.path) {
+        articlePath = message.path; lastArticle = null;
+        document.body.dataset.editorPreviewReady = 'false';
+        const doc = articlePreview?.contentDocument;
+        doc?.getElementById('content')?.replaceChildren();
+        for (const id of ['title', 'metadata']) if (doc?.getElementById(id)) doc.getElementById(id).textContent = '';
+      }
+      article = message.article === true; document.body.dataset.editorArticle = String(article);
+      if (article && !articlePreview) {
+        articlePreview = document.createElement('iframe'); articlePreview.id = 'site-article-preview';
+        articlePreview.title = zh ? '文章实时预览' : 'Live article preview'; articlePreview.setAttribute('sandbox', 'allow-same-origin');
+        articlePreview.setAttribute('aria-busy', 'true');
+        articlePreview.src = '/admin/preview.html?v=24';
+        articlePreview.addEventListener('load', renderArticlePreview);
+        document.querySelector('.main').append(articlePreview);
+      }
+    }
+    if (message?.type === 'editor-article-preview' && typeof message.html === 'string' && message.html.length <= 5000000 &&
+        typeof message.title === 'string' && typeof message.details === 'string' && ['en', 'zh'].includes(message.locale)) {
+      lastArticle = message; renderArticlePreview();
+    }
     if (message?.type === 'editor-ready') { ready = true; appearance(); }
     if (message?.type === 'editor-flushed' && flushes.has(message.id)) { const done = flushes.get(message.id); flushes.delete(message.id); done(message.ok === true); }
     if (message?.type === 'editor-preview') { lastProfile = message.value; if (active) preview(lastProfile); }

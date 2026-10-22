@@ -20,7 +20,7 @@ export function parseData(kind, text, incomplete = false) {
     for (const entry of value) {
       // Older device backups retain the previous publication statuses.
       if (object(entry) && ['published', 'submitted', 'drafted'].includes(entry.status)) entry.status = entry.status === 'published' ? 'journal' : 'preprint';
-      if (!object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim()) || !['journal', 'preprint'].includes(entry.status) || !Number.isInteger(entry.year) || entry.year < 1900 || entry.year > 2200) throw new Error('Each publication needs a title, status and year (1900–2200).');
+      if (!object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim()) || !['journal', 'preprint'].includes(entry.status) || typeof entry.year !== 'number' || !Number.isFinite(entry.year) || !incomplete && (!Number.isInteger(entry.year) || entry.year < 1900 || entry.year > 2200)) throw new Error('Each publication needs a title, status and year (1900–2200).');
     }
   } else if (kind === 'home') {
     const safeLink = link => {
@@ -136,7 +136,7 @@ export class DataEditor {
     const expanded = new Set(this.renderedLang === lang ? [...this.root.querySelectorAll('details[open][data-group]')].map(node => node.dataset.group) : []);
     this.renderedLang = lang;
     this.root.replaceChildren();
-    const heading = document.createElement('h1'); heading.textContent = this.kind === 'home' ? (zh ? '首页' : 'Home') : this.kind === 'cv' ? (zh ? '简历' : 'CV') : (zh ? '论文' : 'Publications'); this.root.append(heading);
+    this.root.setAttribute('aria-label', this.kind === 'cv' ? (zh ? '简历' : 'CV') : this.kind === 'home' ? (zh ? '首页' : 'Home') : (zh ? '论文' : 'Publications'));
     const target = document.createElement('div'); target.className = 'data-fields'; this.root.append(target);
     if (this.kind === 'cv') this.cvFields(target, record.value);
     else this.fields(target, record.value, [], record.value);
@@ -194,9 +194,14 @@ export class DataEditor {
       value.forEach((entry, index) => {
         const details = document.createElement(typeof entry === 'string' ? 'div' : 'details'); details.className = 'surface data-entry'; details.dataset.group = [...path, index].join('.');
         if (typeof entry !== 'string') {
-          const summary = document.createElement('summary'); summary.textContent = `${index + 1}. ${entry.title || entry.name || '…'}`; details.append(summary);
+          const summary = document.createElement('summary'), number = document.createElement('span'), title = document.createElement('span'), meta = document.createElement('span');
+          number.className = 'data-entry-number'; number.textContent = String(index + 1).padStart(2, '0');
+          title.className = 'data-entry-title'; title.textContent = entry.title || entry.name || '…';
+          meta.className = 'data-entry-meta'; meta.textContent = [entry.year || entry.date || entry.date_start, entry.status ? (entry.status === 'journal' ? (lang === 'zh' ? '期刊' : 'Journal') : (lang === 'zh' ? '预印本' : 'Preprint')) : entry.institution || entry.location].filter(Boolean).join(' · ');
+          summary.append(number, title, meta); details.append(summary);
         }
-        this.fields(details, entry, [...path, index], value, index);
+        const properties = document.createElement('div'); properties.className = 'data-properties';
+        this.fields(properties, entry, [...path, index], value, index); details.append(properties);
         const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.textContent = this.text('remove');
         remove.onclick = () => { if (confirm(this.text('delete'))) { value.splice(index, 1); this.changed(); this.render(); } }; details.append(remove); root.append(details);
       });
@@ -220,21 +225,27 @@ export class DataEditor {
           const group = document.createElement('details'); group.className = 'data-section'; group.dataset.group = [...path, name].join('.'); group.open = this.kind === 'publications';
           const summary = document.createElement('summary'); summary.textContent = label(name); group.append(summary); this.fields(group, child, [...path, name], value, name); root.append(group);
         } else {
-          const wrapper = document.createElement('label'); wrapper.textContent = label(name); this.fields(wrapper, child, [...path, name], value, name); root.append(wrapper);
+          const wrapper = document.createElement('label'); wrapper.dataset.property = name; wrapper.textContent = label(name); this.fields(wrapper, child, [...path, name], value, name); root.append(wrapper);
         }
       }
     } else {
       const choices = this.kind === 'home' && key === 'name' ? ['email', 'github', 'googlescholar'] : key === 'status' ? ['journal', 'preprint'] : key === 'type' ? ['seminar', 'workshop', 'conference'] : null;
-      const input = document.createElement(choices ? 'select' : typeof value === 'boolean' ? 'input' : 'textarea');
+      const numeric = typeof value === 'number', singleLine = ['pdf', 'code', 'url', 'event_url', 'slides', 'image', 'contactURL'].includes(key);
+      const input = document.createElement(choices ? 'select' : typeof value === 'boolean' || numeric || singleLine ? 'input' : 'textarea');
+      if (numeric) { input.type = 'number'; input.step = '1'; if (key === 'year') { input.min = '1900'; input.max = '2200'; } }
+      if (singleLine) { input.type = 'text'; input.autocapitalize = 'none'; input.autocomplete = 'off'; }
       if (choices) for (const option of choices) input.append(new Option(key === 'status' ? ({ journal: lang === 'zh' ? '期刊' : 'Journal', preprint: lang === 'zh' ? '预印本' : 'Preprint' })[option] : option, option));
       if (typeof value === 'boolean') { input.type = 'checkbox'; input.checked = value; } else input.value = value ?? '';
       input.dataset.field = path.join('.'); input.setAttribute('aria-label', typeof key === 'number' ? `${label('items')} ${key + 1}` : label(key)); input.spellcheck = false;
       if (input.tagName === 'TEXTAREA') input.rows = key === 'intro' || key === 'title' ? 3 : 2;
       input.addEventListener('input', () => { parent[key] = typeof value === 'number' ? Number(input.value) : typeof value === 'boolean' ? input.checked : input.value; this.changed();
         if (key === 'title' || typeof key === 'number') {
-          const summary = input.closest('.data-entry')?.querySelector('summary');
-          if (summary) summary.textContent = `${path.filter(segment => typeof segment === 'number').at(-1) + 1}. ${input.value || '…'}`;
+          const title = input.closest('.data-entry')?.querySelector('.data-entry-title');
+          if (title) title.textContent = input.value || '…';
         }
+        const summaryMeta = input.closest('.data-entry')?.querySelector('.data-entry-meta');
+        if (summaryMeta) summaryMeta.textContent = [parent.year || parent.date || parent.date_start,
+          parent.status ? (parent.status === 'journal' ? (lang === 'zh' ? '期刊' : 'Journal') : (lang === 'zh' ? '预印本' : 'Preprint')) : parent.institution || parent.location].filter(Boolean).join(' · ');
       }); root.append(input);
     }
   }
