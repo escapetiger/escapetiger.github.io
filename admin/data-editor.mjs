@@ -18,7 +18,9 @@ export function parseData(kind, text, incomplete = false) {
   if (kind === 'publications') {
     if (!Array.isArray(value)) throw new Error('Publications must be a list.');
     for (const entry of value) {
-      if (!object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim()) || !['published', 'submitted', 'drafted'].includes(entry.status) || !Number.isInteger(entry.year) || entry.year < 1900 || entry.year > 2200) throw new Error('Each publication needs a title, status and year (1900–2200).');
+      // Older device backups retain the previous publication statuses.
+      if (object(entry) && ['published', 'submitted', 'drafted'].includes(entry.status)) entry.status = entry.status === 'published' ? 'journal' : 'preprint';
+      if (!object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim()) || !['journal', 'preprint'].includes(entry.status) || !Number.isInteger(entry.year) || entry.year < 1900 || entry.year > 2200) throw new Error('Each publication needs a title, status and year (1900–2200).');
     }
   } else if (kind === 'home') {
     const safeLink = link => {
@@ -68,10 +70,10 @@ export async function saveData(api, kind, records) {
   return { commit: commit.sha, files: entries };
 }
 const labels = {
-  zh: { subtitle: '座右铭', image: '头像链接', imageTitle: '头像描述', social: '社交链接', name: '图标', contactLabel: '联系链接文字', contactURL: '联系链接', intro: '个人简介', pdf: 'PDF 路径', research: '研究方向', appointments: '工作经历', education: '教育经历', visiting: '访问经历', service: '学术服务', talks: '学术报告', posters: '海报', teaching: '教学经历', title: '标题', items: '条目', entries: '条目', date: '日期', institution: '机构', detail: '说明', location: '地点', type: '类型', event_url: '活动链接', date_start: '开始日期', date_end: '结束日期', slides: '幻灯片路径', authors: '作者', publisher: '期刊 / 出版物', volume: '卷期', pages: '页码', year: '年份', status: '状态', code: '代码链接', url: '论文链接' },
-  en: { subtitle: 'Motto', image: 'Avatar URL', imageTitle: 'Avatar description', social: 'Social links', name: 'Icon', contactLabel: 'Contact label', contactURL: 'Contact URL', intro: 'Introduction', pdf: 'PDF path', research: 'Research', appointments: 'Appointments', education: 'Education', visiting: 'Visiting experience', service: 'Academic service', talks: 'Talks', posters: 'Posters', teaching: 'Teaching', title: 'Title', items: 'Items', entries: 'Entries', date: 'Date', institution: 'Institution', detail: 'Details', location: 'Location', type: 'Type', event_url: 'Event URL', date_start: 'Start date', date_end: 'End date', slides: 'Slides path', authors: 'Authors', publisher: 'Journal / publisher', volume: 'Volume', pages: 'Pages', year: 'Year', status: 'Status', code: 'Code URL', url: 'Paper URL' }
+  zh: { subtitle: '座右铭', image: '头像链接', imageTitle: '头像描述', social: '社交链接', name: '图标', contactLabel: '联系链接文字', contactURL: '联系链接', intro: '个人简介', pdf: 'PDF 路径', research: '研究方向', appointments: '工作经历', education: '教育经历', visiting: '访问经历', service: '学术服务', talks: '学术报告', posters: '海报', teaching: '教学经历', title: '标题', items: '条目', entries: '条目', date: '日期', institution: '机构', detail: '说明', location: '地点', type: '类型', event_url: '活动链接', date_start: '开始日期', date_end: '结束日期', slides: '幻灯片路径', authors: '作者', publisher: '期刊 / 出版物', volume: '卷期', pages: '页码', year: '年份', status: '类别', code: '代码链接', url: '论文链接' },
+  en: { subtitle: 'Motto', image: 'Avatar URL', imageTitle: 'Avatar description', social: 'Social links', name: 'Icon', contactLabel: 'Contact label', contactURL: 'Contact URL', intro: 'Introduction', pdf: 'PDF path', research: 'Research', appointments: 'Appointments', education: 'Education', visiting: 'Visiting experience', service: 'Academic service', talks: 'Talks', posters: 'Posters', teaching: 'Teaching', title: 'Title', items: 'Items', entries: 'Entries', date: 'Date', institution: 'Institution', detail: 'Details', location: 'Location', type: 'Type', event_url: 'Event URL', date_start: 'Start date', date_end: 'End date', slides: 'Slides path', authors: 'Authors', publisher: 'Journal / publisher', volume: 'Volume', pages: 'Pages', year: 'Year', status: 'Category', code: 'Code URL', url: 'Paper URL' }
 };
-const blankPublication = () => ({ title: '', status: 'submitted', authors: '', publisher: '', volume: '', pages: '', year: new Date().getFullYear(), pdf: '', code: '', url: '' });
+const blankPublication = () => ({ title: '', status: 'preprint', authors: '', publisher: '', volume: '', pages: '', year: new Date().getFullYear(), pdf: '', code: '', url: '' });
 const blankEntry = key => key === 'research' ? '' : key === 'talks' ? { title: '', type: 'seminar', event_url: '', location: '', date_start: '', date_end: '', slides: '' } : { title: '', date: '', institution: '', detail: '', location: '' };
 const draftKey = kind => `yicai-section-backup-v1-${kind}`;
 export class DataEditor {
@@ -176,9 +178,9 @@ export class DataEditor {
         }
       }
     } else {
-      const choices = this.kind === 'home' && key === 'name' ? ['email', 'github', 'googlescholar'] : key === 'status' ? ['published', 'submitted', 'drafted'] : key === 'type' ? ['seminar', 'workshop', 'conference'] : null;
+      const choices = this.kind === 'home' && key === 'name' ? ['email', 'github', 'googlescholar'] : key === 'status' ? ['journal', 'preprint'] : key === 'type' ? ['seminar', 'workshop', 'conference'] : null;
       const input = document.createElement(choices ? 'select' : typeof value === 'boolean' ? 'input' : 'textarea');
-      if (choices) for (const option of choices) input.append(new Option(option, option));
+      if (choices) for (const option of choices) input.append(new Option(key === 'status' ? ({ journal: lang === 'zh' ? '期刊' : 'Journal', preprint: lang === 'zh' ? '预印本' : 'Preprint' })[option] : option, option));
       if (typeof value === 'boolean') { input.type = 'checkbox'; input.checked = value; } else input.value = value ?? '';
       input.dataset.field = path.join('.'); input.setAttribute('aria-label', label(key) || String(key)); input.spellcheck = false;
       if (input.tagName === 'TEXTAREA') input.rows = key === 'intro' || key === 'title' ? 3 : 2;
