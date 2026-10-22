@@ -104,12 +104,12 @@ if (menu && host) {
         const query = new URLSearchParams({ embedded: '1', page, lang: document.documentElement.lang, target: document.querySelector('meta[name="editor-target"]')?.content || 'home' });
         const source = document.querySelector('meta[name="editor-source"]')?.content; if (source) query.set('source', source);
         frame.src = `/admin/?${query}`; panel.append(frame);
-        sidebarToggle = document.createElement('button'); sidebarToggle.id = 'site-editor-toggle'; sidebarToggle.type = 'button';
+        sidebarToggle = document.createElement('button'); sidebarToggle.id = 'site-editor-toggle'; sidebarToggle.className = 'pm-toc-btn'; sidebarToggle.type = 'button';
         sidebarToggle.setAttribute('aria-controls', panel.id);
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('width', '20'); svg.setAttribute('height', '20'); svg.setAttribute('fill', 'none');
-        svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('aria-hidden', 'true');
-        arrow.setAttribute('d', 'm14 6-6 6 6 6'); svg.append(arrow); sidebarToggle.append(svg);
+        const icon = document.createElement('span'), close = document.createElement('span');
+        icon.className = 'pm-toc-icon'; icon.setAttribute('aria-hidden', 'true');
+        close.className = 'site-editor-close'; close.setAttribute('aria-hidden', 'true'); close.textContent = '×';
+        sidebarToggle.append(icon, close);
         sidebarToggle.addEventListener('click', () => { collapsed = !collapsed; drawMode(); });
         document.body.append(panel, sidebarToggle);
         frame.addEventListener('load', appearance);
