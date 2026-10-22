@@ -14,7 +14,7 @@ h2 { font-size: 22px; line-height: 1.4; }
 p { margin: 12px 0; }
 a { color: var(--accent); text-underline-offset: 4px; }
 button, .button, input, select, textarea { font: inherit; color: inherit; }
-button, .button { display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-height: 46px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); cursor: pointer; text-decoration: none; }
+button, .button { display: inline-flex; justify-content: center; align-items: center; gap: 6px; min-height: 46px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); cursor: pointer; text-decoration: none; font-weight: 700; }
 button:disabled { opacity: .5; cursor: wait; }
 .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .quiet { background: transparent; border-color: transparent; }
@@ -165,7 +165,7 @@ button, .button, input, select, textarea, .menu-panel, .backup-card { border-rad
 .site-tools button { padding: 0 .4rem; border: 0; background: transparent; min-width: 32px; }
 .site-tools .theme-toggle { min-width: 36px; }
 .nav-sep { color: var(--muted); }
-.language-toggle { font-size: 16px; font-weight: 500; }
+.language-toggle { font-size: 16px; }
 .section-menu { display: flex; min-width: 0; align-items: center; gap: 24px; margin-left: auto; overflow-x: auto; scrollbar-width: thin; }
 .section-menu button { flex: 0 0 auto; white-space: nowrap; padding: 0; min-height: 44px; background: transparent; border: 0; font-size: 16px; }
 .section-menu button:hover, .section-menu button[aria-current=page] { color: var(--accent); }
