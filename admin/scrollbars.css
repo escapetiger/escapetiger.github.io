@@ -1,0 +1,14 @@
+/* Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details. */
+/* Share native ink-and-paper scrollbars between public pages and the editor. */
+:root { --scrollbar-thumb: #a49b88; --scrollbar-track: var(--theme, #f5f1e8); --scrollbar-hover: var(--ink-accent, #984536); }
+:root[data-theme="dark"] { --scrollbar-thumb: #76816c; }
+* { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { min-height: 32px; border: 2px solid var(--scrollbar-track); border-radius: 10px; background-color: var(--scrollbar-thumb); }
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background-color: var(--scrollbar-hover); }
+@media (forced-colors: active) {
+  * { scrollbar-color: auto; scrollbar-width: auto; }
+  ::-webkit-scrollbar-thumb { background-color: CanvasText; border-color: Canvas; }
+  ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: Canvas; }
+}

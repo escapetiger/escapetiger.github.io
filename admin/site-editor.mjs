@@ -4,9 +4,9 @@ const menu = document.querySelector('.site-mode-toggle');
 const host = document.querySelector('meta[name="editor-origin"]')?.content;
 if (menu && host) {
   const origin = new URL(host).origin, local = location.origin === origin;
-  const { browseLabel, editLabel, editUrl } = menu.dataset;
+  const { browseLabel, editLabel, editUrl, hideEditorLabel, showEditorLabel } = menu.dataset;
   const page = pagePath(location.pathname), zh = document.documentElement.lang.startsWith('zh');
-  let panel, frame, ready = false, active = false, checking = false, leaving = false, published, initialProfile, lastProfile;
+  let panel, frame, sidebarToggle, collapsed = false, ready = false, active = false, checking = false, leaving = false, published, initialProfile, lastProfile;
   const storedMode = () => { try { return sessionStorage.getItem('site-edit-mode') === 'edit'; } catch { return false; } };
   const remember = mode => { try { sessionStorage.setItem('site-edit-mode', mode); } catch { /* The current page still changes mode. */ } };
   let flushID = 0;
@@ -72,11 +72,18 @@ if (menu && host) {
   }
   function drawMode() {
     document.body.dataset.editorActive = String(active);
+    document.body.dataset.editorCollapsed = String(active && collapsed);
     menu.dataset.active = String(active);
     menu.setAttribute('aria-pressed', String(active));
     const label = active ? `${editLabel} · ${browseLabel}` : `${browseLabel} · ${editLabel}`;
     menu.setAttribute('aria-label', label); menu.title = label;
-    if (panel) panel.hidden = !active;
+    if (panel) panel.hidden = !active || collapsed;
+    if (sidebarToggle) {
+      sidebarToggle.hidden = !active; sidebarToggle.dataset.collapsed = String(collapsed);
+      sidebarToggle.setAttribute('aria-expanded', String(active && !collapsed));
+      const action = collapsed ? showEditorLabel : hideEditorLabel;
+      sidebarToggle.setAttribute('aria-label', action); sidebarToggle.title = action;
+    }
     if (active) { if (lastProfile) preview(lastProfile); appearance(); }
     else if (initialProfile) preview(initialProfile);
     layout();
@@ -96,10 +103,18 @@ if (menu && host) {
         frame = document.createElement('iframe'); frame.id = 'site-editor-frame'; frame.title = `${editLabel} · ${document.title}`;
         const query = new URLSearchParams({ embedded: '1', page, lang: document.documentElement.lang, target: document.querySelector('meta[name="editor-target"]')?.content || 'home' });
         const source = document.querySelector('meta[name="editor-source"]')?.content; if (source) query.set('source', source);
-        frame.src = `/admin/?${query}`; panel.append(frame); document.body.append(panel);
+        frame.src = `/admin/?${query}`; panel.append(frame);
+        sidebarToggle = document.createElement('button'); sidebarToggle.id = 'site-editor-toggle'; sidebarToggle.type = 'button';
+        sidebarToggle.setAttribute('aria-controls', panel.id);
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'), arrow = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('width', '20'); svg.setAttribute('height', '20'); svg.setAttribute('fill', 'none');
+        svg.setAttribute('stroke', 'currentColor'); svg.setAttribute('stroke-width', '1.8'); svg.setAttribute('aria-hidden', 'true');
+        arrow.setAttribute('d', 'm14 6-6 6 6 6'); svg.append(arrow); sidebarToggle.append(svg);
+        sidebarToggle.addEventListener('click', () => { collapsed = !collapsed; drawMode(); });
+        document.body.append(panel, sidebarToggle);
         frame.addEventListener('load', appearance);
       }
-      active = true; remember('edit'); history.replaceState(null, '', `${page}?mode=edit${location.hash}`); drawMode(); menu.focus({ preventScroll: true });
+      active = true; collapsed = false; remember('edit'); history.replaceState(null, '', `${page}?mode=edit${location.hash}`); drawMode(); menu.focus({ preventScroll: true });
     } catch (error) { alert(error.message); }
     finally { checking = false; menu.removeAttribute('aria-busy'); }
   }
