@@ -12,7 +12,7 @@ import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './aut
 import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
 import { entryFrom, pagePath } from './routes.mjs?v=18';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=20';
+import { DataEditor, dataPath } from './data-editor.mjs?v=21';
 
 const parameters = new URL(location.href).searchParams;
 const embedded = parameters.get('embedded') === '1' && window.parent !== window;

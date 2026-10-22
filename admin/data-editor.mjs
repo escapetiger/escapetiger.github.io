@@ -38,9 +38,11 @@ export function parseData(kind, text, incomplete = false) {
         value.social.some(entry => !['email', 'github', 'googlescholar'].includes(entry.name) || !safeLink(entry.url)))) throw new Error('Invalid home profile or link.');
   } else if (kind === 'cv') {
     if (!object(value) || typeof value.intro !== 'string' || typeof value.pdf !== 'string') throw new Error('CV needs intro and pdf fields.');
-    for (const key of sections) {
-      const section = value[key];
-      if (!object(section) || typeof section.title !== 'string' || !Array.isArray(section[key === 'research' ? 'items' : 'entries'])) throw new Error(`Invalid CV section: ${key}`);
+    const custom = value.custom_sections ?? {};
+    if (!object(custom) || Object.keys(custom).some(key => !/^section_[a-z0-9_]+$/.test(key))) throw new Error('Invalid custom CV sections.');
+    for (const key of [...sections, ...Object.keys(custom)]) {
+      const section = sections.includes(key) ? value[key] : custom[key];
+      if (!object(section) || typeof section.title !== 'string' || (!incomplete && !section.title.trim()) || !Array.isArray(section[key === 'research' ? 'items' : 'entries'])) throw new Error(`Invalid CV section: ${key}`);
       for (const entry of section[key === 'research' ? 'items' : 'entries']) {
         if (key === 'research' ? typeof entry !== 'string' : !object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim())) throw new Error(`Invalid CV entry: ${key}`);
         if (key === 'talks' && !['seminar', 'workshop', 'conference'].includes(entry.type)) throw new Error('Invalid talk type.');
@@ -80,7 +82,7 @@ export class DataEditor {
   constructor({ root, locale, api, notify, published }) {
     Object.assign(this, { root, locale, api, notify, published }); this.records = null; this.dirty = false; this.backupVersion = null; this.sessions = new Map();
   }
-  text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '添加条目' : 'Add entry', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '已备份 · 未发布' : 'Backed up · Unpublished', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布此部分的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
+  text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '新增' : 'Add', addSection: zh ? '新增栏目' : 'Add section', sectionTitle: zh ? '栏目标题' : 'Section title', removeSection: zh ? '删除栏目' : 'Remove section', deleteSection: zh ? '删除此栏目及其中英文条目？' : 'Remove this section and its entries in both languages?', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '已备份 · 未发布' : 'Backed up · Unpublished', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布此部分的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
   async open(kind, reload = false) {
     if (this.kind && this.records) this.sessions.set(this.kind, { records: this.records, dirty: this.dirty, backupVersion: this.backupVersion });
     const client = this.api(), saved = this.sessions.get(kind), inventory = client.latestSnapshot;
@@ -136,20 +138,64 @@ export class DataEditor {
     this.root.replaceChildren();
     const heading = document.createElement('h1'); heading.textContent = this.kind === 'home' ? (zh ? '首页' : 'Home') : this.kind === 'cv' ? (zh ? '简历' : 'CV') : (zh ? '论文' : 'Publications'); this.root.append(heading);
     const target = document.createElement('div'); target.className = 'data-fields'; this.root.append(target);
-    this.fields(target, record.value, [], record.value);
+    if (this.kind === 'cv') this.cvFields(target, record.value);
+    else this.fields(target, record.value, [], record.value);
     for (const details of this.root.querySelectorAll('details[data-group]')) if (expanded.has(details.dataset.group) || details.dataset.group === this.revealPath) details.open = true;
     if (this.revealPath !== undefined) {
-      const item = [...this.root.querySelectorAll('details[data-group]')].find(node => node.dataset.group === this.revealPath);
+      const item = [...this.root.querySelectorAll('[data-group]')].find(node => node.dataset.group === this.revealPath);
       item?.querySelector('textarea, select, input')?.focus(); this.revealPath = undefined;
     }
     if (this.dirty) this.backup();
+  }
+  addSection() {
+    const key = `section_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`;
+    for (const lang of ['en', 'zh']) {
+      const record = this.records[lang];
+      record.value.custom_sections ??= {};
+      record.value.custom_sections[key] = { title: lang === 'zh' ? '新栏目' : 'New section', entries: [] };
+      record.text = globalThis.jsyaml.dump(record.value, { lineWidth: 100, noRefs: true, schema: globalThis.jsyaml.JSON_SCHEMA });
+    }
+    this.revealPath = `custom_sections.${key}`; this.dirty = true; this.backup(); this.render();
+  }
+  cvFields(root, value) {
+    for (const key of ['intro', 'pdf']) {
+      const wrapper = document.createElement('label'); wrapper.textContent = labels[this.locale()][key];
+      this.fields(wrapper, value[key], [key], value, key); root.append(wrapper);
+    }
+    for (const key of sections) this.cvSection(root, value[key], [key]);
+    for (const [key, section] of Object.entries(value.custom_sections || {})) this.cvSection(root, section, ['custom_sections', key]);
+    const add = document.createElement('button'); add.type = 'button'; add.dataset.addSection = ''; add.textContent = this.text('addSection');
+    add.addEventListener('click', () => this.addSection()); root.append(add);
+  }
+  cvSection(root, section, path) {
+    const group = document.createElement('details'); group.className = 'data-section cv-edit-section'; group.dataset.group = path.join('.');
+    const summary = document.createElement('summary'), title = document.createElement('span'), input = document.createElement('input');
+    title.textContent = section.title; input.value = section.title; input.type = 'text'; input.dataset.field = [...path, 'title'].join('.');
+    input.setAttribute('aria-label', this.text('sectionTitle')); input.addEventListener('input', () => { section.title = input.value; title.textContent = input.value; this.changed(); });
+    summary.append(title, input); group.append(summary);
+    const key = path[0] === 'research' ? 'items' : 'entries';
+    this.fields(group, section[key], [...path, key], section, key);
+    if (path[0] === 'custom_sections') {
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.dataset.removeSection = ''; remove.textContent = this.text('removeSection');
+      remove.addEventListener('click', () => {
+        if (!confirm(this.text('deleteSection'))) return;
+        for (const lang of ['en', 'zh']) {
+          const record = this.records[lang]; delete record.value.custom_sections?.[path[1]];
+          record.text = globalThis.jsyaml.dump(record.value, { lineWidth: 100, noRefs: true, schema: globalThis.jsyaml.JSON_SCHEMA });
+        }
+        this.dirty = true; this.backup(); this.render();
+      }); group.append(remove);
+    }
+    root.append(group);
   }
   fields(root, value, path, parent, key) {
     const lang = this.locale(), label = name => labels[lang][name] || name;
     if (Array.isArray(value)) {
       value.forEach((entry, index) => {
-        const details = document.createElement('details'); details.className = 'surface data-entry'; details.dataset.group = [...path, index].join('.');
-        const summary = document.createElement('summary'); summary.textContent = `${index + 1}. ${typeof entry === 'string' ? entry : entry.title || entry.name || '…'}`; details.append(summary);
+        const details = document.createElement(typeof entry === 'string' ? 'div' : 'details'); details.className = 'surface data-entry'; details.dataset.group = [...path, index].join('.');
+        if (typeof entry !== 'string') {
+          const summary = document.createElement('summary'); summary.textContent = `${index + 1}. ${entry.title || entry.name || '…'}`; details.append(summary);
+        }
         this.fields(details, entry, [...path, index], value, index);
         const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.textContent = this.text('remove');
         remove.onclick = () => { if (confirm(this.text('delete'))) { value.splice(index, 1); this.changed(); this.render(); } }; details.append(remove); root.append(details);
@@ -167,7 +213,7 @@ export class DataEditor {
     } else if (value && typeof value === 'object') {
       // Expose optional fields even when older entries omit them. Preserve unknown fields.
       const defaults = this.kind === 'publications' && path.length === 1 ? blankPublication() :
-        this.kind === 'cv' && path.length === 3 && path[1] === 'entries' ? blankEntry(path[0]) : {};
+        this.kind === 'cv' && path.at(-2) === 'entries' ? blankEntry(path[0]) : {};
       for (const [name, fallback] of Object.entries(defaults)) if (!Object.hasOwn(value, name)) value[name] = fallback;
       for (const [name, child] of Object.entries(value)) {
         if (child && typeof child === 'object') {
@@ -182,7 +228,7 @@ export class DataEditor {
       const input = document.createElement(choices ? 'select' : typeof value === 'boolean' ? 'input' : 'textarea');
       if (choices) for (const option of choices) input.append(new Option(key === 'status' ? ({ journal: lang === 'zh' ? '期刊' : 'Journal', preprint: lang === 'zh' ? '预印本' : 'Preprint' })[option] : option, option));
       if (typeof value === 'boolean') { input.type = 'checkbox'; input.checked = value; } else input.value = value ?? '';
-      input.dataset.field = path.join('.'); input.setAttribute('aria-label', label(key) || String(key)); input.spellcheck = false;
+      input.dataset.field = path.join('.'); input.setAttribute('aria-label', typeof key === 'number' ? `${label('items')} ${key + 1}` : label(key)); input.spellcheck = false;
       if (input.tagName === 'TEXTAREA') input.rows = key === 'intro' || key === 'title' ? 3 : 2;
       input.addEventListener('input', () => { parent[key] = typeof value === 'number' ? Number(input.value) : typeof value === 'boolean' ? input.checked : input.value; this.changed();
         if (key === 'title' || typeof key === 'number') {

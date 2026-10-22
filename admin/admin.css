@@ -220,3 +220,11 @@ body[data-embedded=true] .data-actions { position: sticky; bottom: -16px; backgr
 
 body[data-embedded=true] #login-view h1,
 body[data-embedded=true] #github-login-panel { display: none; }
+
+/* Edit section names in their existing heading, with no repeated title field. */
+.cv-edit-section > summary { min-height: 48px; line-height: 48px; }
+.cv-edit-section > summary input { display: none; width: calc(100% - 28px); min-height: 44px; margin: 0; padding: 0 6px; font: inherit; color: inherit; background: transparent; border-color: transparent; vertical-align: middle; }
+.cv-edit-section[open] > summary > span { display: none; }
+.cv-edit-section[open] > summary > input { display: inline-block; }
+.cv-edit-section > summary > input:focus { border-color: var(--line); }
+.data-fields > [data-add-section] { margin-top: 16px; }
