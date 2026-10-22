@@ -6,7 +6,7 @@ if (menu && host) {
   const origin = new URL(host).origin, local = location.origin === origin;
   const { browseLabel, editLabel, editUrl, hideEditorLabel, showEditorLabel } = menu.dataset;
   const page = pagePath(location.pathname), zh = document.documentElement.lang.startsWith('zh');
-  let panel, frame, sidebarToggle, collapsed = false, ready = false, active = false, checking = false, leaving = false, published, initialProfile, lastProfile;
+  let panel, frame, sidebarToggle, hidePanelTimer, collapsed = false, ready = false, active = false, checking = false, leaving = false, published, initialProfile, lastProfile;
   const storedMode = () => { try { return sessionStorage.getItem('site-edit-mode') === 'edit'; } catch { return false; } };
   const remember = mode => { try { sessionStorage.setItem('site-edit-mode', mode); } catch { /* The current page still changes mode. */ } };
   let flushID = 0;
@@ -70,6 +70,24 @@ if (menu && host) {
     const header = document.querySelector('.header');
     if (header) root.style.setProperty('--site-editor-top', `${Math.max(0, Math.ceil(header.getBoundingClientRect().bottom))}px`);
   }
+  function showPanel(show) {
+    if (!panel) return;
+    clearTimeout(hidePanelTimer);
+    panel.inert = !show; panel.setAttribute('aria-hidden', String(!show));
+    if (show) {
+      const wasHidden = panel.hidden; panel.hidden = false;
+      if (wasHidden) {
+        panel.dataset.open = 'false';
+        // Establish the rolled state before starting the CSS reveal.
+        void panel.offsetWidth;
+      }
+      panel.dataset.open = 'true';
+    } else {
+      panel.dataset.open = 'false';
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) panel.hidden = true;
+      else hidePanelTimer = setTimeout(() => { if (!active || collapsed) panel.hidden = true; }, 500);
+    }
+  }
   function drawMode() {
     document.body.dataset.editorActive = String(active);
     document.body.dataset.editorCollapsed = String(active && collapsed);
@@ -77,7 +95,7 @@ if (menu && host) {
     menu.setAttribute('aria-pressed', String(active));
     const label = active ? `${editLabel} · ${browseLabel}` : `${browseLabel} · ${editLabel}`;
     menu.setAttribute('aria-label', label); menu.title = label;
-    if (panel) panel.hidden = !active || collapsed;
+    showPanel(active && !collapsed);
     if (sidebarToggle) {
       sidebarToggle.hidden = !active; sidebarToggle.dataset.collapsed = String(collapsed);
       sidebarToggle.setAttribute('aria-expanded', String(active && !collapsed));
@@ -99,7 +117,7 @@ if (menu && host) {
       if (!response.ok) throw new Error(zh ? '暂时无法连接，请重试。' : 'Unable to connect. Please retry.');
       if (!panel) {
         initialProfile = profileState();
-        panel = document.createElement('section'); panel.id = 'site-editor-panel'; panel.setAttribute('aria-label', editLabel);
+        panel = document.createElement('section'); panel.id = 'site-editor-panel'; panel.className = 'scroll-sheet'; panel.hidden = true; panel.dataset.open = 'false'; panel.setAttribute('aria-label', editLabel);
         frame = document.createElement('iframe'); frame.id = 'site-editor-frame'; frame.title = `${editLabel} · ${document.title}`;
         const query = new URLSearchParams({ embedded: '1', page, lang: document.documentElement.lang, target: document.querySelector('meta[name="editor-target"]')?.content || 'home' });
         const source = document.querySelector('meta[name="editor-source"]')?.content; if (source) query.set('source', source);
