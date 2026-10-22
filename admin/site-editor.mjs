@@ -1,10 +1,10 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { pagePath } from '/admin/routes.mjs?v=18';
-const menu = document.querySelector('.site-mode-menu');
+const menu = document.querySelector('.site-mode-toggle');
 const host = document.querySelector('meta[name="editor-origin"]')?.content;
 if (menu && host) {
   const origin = new URL(host).origin, local = location.origin === origin;
-  const browse = menu.querySelector('[data-editor-mode="browse"]'), edit = menu.querySelector('[data-editor-mode="edit"]');
+  const { browseLabel, editLabel, editUrl } = menu.dataset;
   const page = pagePath(location.pathname), zh = document.documentElement.lang.startsWith('zh');
   let panel, frame, ready = false, active = false, checking = false, leaving = false, published, initialProfile, lastProfile;
   const storedMode = () => { try { return sessionStorage.getItem('site-edit-mode') === 'edit'; } catch { return false; } };
@@ -73,18 +73,18 @@ if (menu && host) {
   function drawMode() {
     document.body.dataset.editorActive = String(active);
     menu.dataset.active = String(active);
-    menu.querySelector('.mode-label').textContent = active ? edit.textContent : browse.textContent;
-    menu.querySelector('summary').setAttribute('aria-label', `${menu.querySelector('summary').title}: ${active ? edit.textContent : browse.textContent}`);
-    (active ? edit : browse).setAttribute('aria-current', 'true'); (active ? browse : edit).removeAttribute('aria-current');
-    menu.open = false; if (panel) panel.hidden = !active;
+    menu.setAttribute('aria-pressed', String(active));
+    const label = active ? `${editLabel} · ${browseLabel}` : `${browseLabel} · ${editLabel}`;
+    menu.setAttribute('aria-label', label); menu.title = label;
+    if (panel) panel.hidden = !active;
     if (active) { if (lastProfile) preview(lastProfile); appearance(); }
     else if (initialProfile) preview(initialProfile);
     layout();
   }
   async function enable() {
     if (!page || checking) return;
-    if (!local) { location.assign(edit.href); return; }
-    if (active) { menu.open = false; return; }
+    if (!local) { location.assign(editUrl); return; }
+    if (active) return;
     checking = true; menu.setAttribute('aria-busy', 'true');
     try {
       const response = await fetch('/admin/auth/session', { credentials: 'same-origin', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(15000) });
@@ -92,14 +92,14 @@ if (menu && host) {
       if (!response.ok) throw new Error(zh ? '暂时无法连接，请重试。' : 'Unable to connect. Please retry.');
       if (!panel) {
         initialProfile = profileState();
-        panel = document.createElement('section'); panel.id = 'site-editor-panel'; panel.setAttribute('aria-label', edit.textContent);
-        frame = document.createElement('iframe'); frame.id = 'site-editor-frame'; frame.title = `${edit.textContent} · ${document.title}`;
+        panel = document.createElement('section'); panel.id = 'site-editor-panel'; panel.setAttribute('aria-label', editLabel);
+        frame = document.createElement('iframe'); frame.id = 'site-editor-frame'; frame.title = `${editLabel} · ${document.title}`;
         const query = new URLSearchParams({ embedded: '1', page, lang: document.documentElement.lang, target: document.querySelector('meta[name="editor-target"]')?.content || 'home' });
         const source = document.querySelector('meta[name="editor-source"]')?.content; if (source) query.set('source', source);
         frame.src = `/admin/?${query}`; panel.append(frame); document.body.append(panel);
         frame.addEventListener('load', appearance);
       }
-      active = true; remember('edit'); history.replaceState(null, '', `${page}?mode=edit${location.hash}`); drawMode(); menu.querySelector('summary').focus({ preventScroll: true });
+      active = true; remember('edit'); history.replaceState(null, '', `${page}?mode=edit${location.hash}`); drawMode(); menu.focus({ preventScroll: true });
     } catch (error) { alert(error.message); }
     finally { checking = false; menu.removeAttribute('aria-busy'); }
   }
@@ -113,8 +113,7 @@ if (menu && host) {
   async function refreshPublished() {
     if (await flush() && published && !active && !leaving) location.replace(`${published.url || page}?published=${published.commit}`);
   }
-  edit.addEventListener('click', event => { event.preventDefault(); void enable(); });
-  browse.addEventListener('click', event => { if (local) { event.preventDefault(); disable(); } });
+  menu.addEventListener('click', () => { if (active) disable(); else void enable(); });
   window.addEventListener('message', event => {
     if (event.origin !== origin || event.source !== frame?.contentWindow) return;
     const message = event.data;
@@ -144,6 +143,5 @@ if (menu && host) {
   window.addEventListener('resize', layout);
   window.visualViewport?.addEventListener('resize', layout);
   window.visualViewport?.addEventListener('scroll', layout);
-  document.addEventListener('click', event => { if (!menu.contains(event.target)) menu.open = false; });
   if (local && (new URL(location.href).searchParams.get('mode') === 'edit' || new URL(location.href).searchParams.get('mode') !== 'browse' && storedMode())) void enable();
 }
