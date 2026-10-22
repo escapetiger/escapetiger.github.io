@@ -17,6 +17,23 @@ function button(text, action, className = 'quiet') { const element = node('butto
 const titleOf = value => typeof value === 'string' ? value : value?.title || value?.text || '';
 const newId = () => `item_${crypto.randomUUID().replaceAll('-', '')}`;
 export class StructuredEditor extends DataEditor {
+  constructor(options) {
+    super(options);
+    this.root.addEventListener?.('focusin', event => {
+      const item = event.target.closest('[data-unit]');
+      if (item) this.activate(JSON.parse(item.dataset.unit));
+    });
+    this.root.addEventListener?.('click', event => {
+      const summary = event.target.closest('summary'), item = summary?.closest('[data-unit]');
+      if (item) this.activate(JSON.parse(item.dataset.unit));
+    });
+  }
+  findUnit(scope = this.scope) { return [...this.root.querySelectorAll('[data-unit]')].find(item => item.dataset.unit === scopeKey(scope)); }
+  activate(scope) {
+    if (scopeKey(this.scope) !== scopeKey(scope)) { this.conflict = null; this.root.querySelector('.unit-conflict')?.remove(); }
+    this.scope = scope; this.group = scope.group || (this.kind === 'cv' ? 'basic' : '');
+    this.updateSelection(); this.setStatus(this.text(this.currentDirty() ? 'dirty' : 'clean'));
+  }
   text(name) { return words[this.locale()][name] || super.text(name); }
   get active() { return this.records?.[this.locale()]; }
   differences(record = this.active) { return record ? changes(this.kind, record.base, record.value) : []; }
@@ -97,63 +114,80 @@ export class StructuredEditor extends DataEditor {
       row.toggleAttribute('data-dirty', dirty); const state = row.querySelector('.unit-marker');
       if (state) {
         const removed = unitValue(this.kind, this.active.value, scope) === undefined; state.textContent = removed ? this.text('removed') : dirty ? '•' : ''; state.title = removed ? this.text('removed') : dirty ? this.text('dirty') : '';
-        row.querySelector('.unit-row').setAttribute('aria-label', `${row.querySelector('.unit-title').textContent} ${row.querySelector('.unit-meta').textContent} ${state.title}`.trim());
+        const trigger = row.querySelector(':scope > .unit-row');
+        if (trigger && !row.classList.contains('cv-edit-section')) trigger.setAttribute('aria-label', `${row.querySelector('.unit-title').textContent} ${row.querySelector('.unit-meta').textContent} ${state.title}`.trim());
       }
     }
   }
   setStatus(text) { const status = document.getElementById('data-item-status'); if (status) status.textContent = text; }
   updateSelection() {
+    for (const item of this.root.querySelectorAll?.('[data-unit]') || []) item.toggleAttribute('data-selected', item.dataset.unit === scopeKey(this.scope));
     const section = this.kind === 'cv' && this.group !== 'basic' && !!groupAt(this.active?.value || {}, this.group);
-    this.selectionChanged({ section, entry: this.scope?.type === 'entry' && unitValue(this.kind, this.active?.value, this.scope) !== undefined, selected: !!this.scope, dirty: this.currentDirty(), detail: !!this.scope, legacy: !!this.legacyBackup, legacyBlocked: !!this.legacyBlocked });
+    this.selectionChanged({ section, entry: this.scope?.type === 'entry' && unitValue(this.kind, this.active?.value, this.scope) !== undefined, selected: !!this.scope, dirty: this.currentDirty(), detail: false, legacy: !!this.legacyBackup, legacyBlocked: !!this.legacyBlocked });
   }
   select(scope) {
-    if (!this.scope) this.listScroll = window.scrollY;
-    this.scope = scope; this.conflict = null; this.render();
-    if (document.body.dataset.compact === 'true') window.scrollTo(0, 0);
-    else this.root.querySelector('.unit-form')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    this.scope = scope; this.group = scope.group || (this.kind === 'cv' ? 'basic' : ''); this.conflict = null; this.render();
+    const item = this.findUnit(scope);
+    for (let parent = item; parent; parent = parent.parentElement) if (parent.tagName === 'DETAILS') parent.open = true;
+    item?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    (item?.querySelector(':scope > summary > input') || item?.querySelector('.unit-form input, .unit-form textarea, .unit-form select'))?.focus();
   }
-  back() { this.scope = null; this.conflict = null; this.render(); requestAnimationFrame(() => window.scrollTo(0, this.listScroll || 0)); }
-  row(root, scope, title, subtitle = '') {
-    const item = node('div', 'unit-item'); item.dataset.unit = scopeKey(scope); item.toggleAttribute('data-selected', scopeKey(scope) === scopeKey(this.scope));
-    const row = button('', () => this.select(scope), 'unit-row');
-    const titleNode = node('span', 'unit-title', title || this.text('untitled')), meta = node('span', 'unit-meta', subtitle), marker = node('span', 'unit-marker');
-    row.append(titleNode, meta, marker); item.append(row); root.append(item);
-    if (scopeKey(scope) === scopeKey(this.scope)) this.form(item, scope, title || this.text('untitled'));
+  row(root, scope, title, subtitle = '', number = 1) {
+    const item = node('details', 'data-entry unit-item'); item.dataset.unit = scopeKey(scope); item.dataset.group = scope.id;
+    item.open = this.expanded.has(scopeKey(scope)) || scopeKey(scope) === scopeKey(this.scope);
+    const summary = node('summary', 'unit-row');
+    summary.append(node('span', 'data-entry-number', String(number).padStart(2, '0')), node('span', 'data-entry-title unit-title', title || this.text('untitled')), node('span', 'data-entry-meta unit-meta', subtitle), node('span', 'unit-marker'));
+    item.append(summary); root.append(item); this.form(item, scope, title || this.text('untitled'));
+  }
+  researchRow(root, scope, item, number) {
+    const row = node('div', 'data-entry unit-item unit-research'); row.dataset.unit = scopeKey(scope); row.dataset.group = scope.id;
+    row.append(node('span', 'unit-title sr-only', titleOf(item)), node('span', 'unit-meta sr-only'), node('span', 'unit-marker'));
+    root.append(row); this.form(row, scope, this.text('text'));
+    row.querySelector('textarea')?.setAttribute('aria-label', `${this.text('text')} ${number}`);
+  }
+  section(root, group) {
+    const scope = { type: 'section', group }, value = groupAt(this.active.value, group), original = groupAt(this.active.base, group);
+    const section = node('details', 'data-section cv-edit-section unit-section'); section.dataset.group = group; section.dataset.unit = scopeKey(scope); section.toggleAttribute('data-deleted', !value);
+    section.open = this.expanded.has(scopeKey(scope)) || this.scope?.group === group;
+    const summary = node('summary', 'unit-row'), title = node('span', 'unit-title', (value || original).title), marker = node('span', 'unit-marker');
+    summary.append(title, node('span', 'unit-meta'), marker);
+    if (value) {
+      const input = node('input'); input.type = 'text'; input.value = value.title; input.dataset.field = 'title'; input.setAttribute('aria-label', this.text('sectionTitle'));
+      input.addEventListener('click', event => event.stopPropagation());
+      input.addEventListener('input', () => { value.title = input.value; title.textContent = input.value; this.changed(); }); summary.append(input);
+    }
+    section.append(summary); root.append(section);
+    if (!value) { section.append(node('p', 'unit-deleted', this.text('removed'))); return; }
+    const entries = node('div', 'section-entries'); section.append(entries);
+    const union = new Map([...(entriesAt(this.kind, this.active.base, group) || []), ...(entriesAt(this.kind, this.active.value, group) || [])].map(item => [item._id, item]));
+    [...union.values()].forEach((item, index) => {
+      const entryScope = { type: 'entry', group, id: item._id };
+      if (group === 'research') this.researchRow(entries, entryScope, item, index + 1);
+      else this.row(entries, entryScope, titleOf(item), [item.date || item.date_start, item.institution || item.location].filter(Boolean).join(' · '), index + 1);
+    });
   }
   render() {
     if (!this.records) return;
-    const lang = this.locale();
-    if (this.renderedLang && this.renderedLang !== lang) { this.scope = null; this.conflict = null; this.group = this.kind === 'cv' ? 'basic' : ''; this.query = ''; this.category = ''; this.year = ''; }
+    const lang = this.locale(), sameLanguage = this.renderedLang === lang;
+    this.expanded = new Set(sameLanguage ? [...this.root.querySelectorAll('details[open][data-unit]')].map(item => item.dataset.unit) : []);
+    if (this.renderedLang && !sameLanguage) { this.scope = null; this.conflict = null; this.group = this.kind === 'cv' ? 'basic' : ''; this.query = ''; }
     if (this.scope && unitValue(this.kind, this.active.base, this.scope) === undefined && unitValue(this.kind, this.active.value, this.scope) === undefined) this.scope = null;
-    this.renderedLang = lang; this.root.replaceChildren(); this.root.className = 'structured-editor'; this.root.dataset.detail = String(!!this.scope);
+    if (!this.scope) this.group = this.kind === 'cv' ? 'basic' : '';
+    this.renderedLang = lang; this.root.replaceChildren(); this.root.className = 'structured-editor inline-data-editor';
     if (this.legacyBlocked) { const warning = node('p', 'unit-legacy', this.text('legacy')); warning.setAttribute('role', 'alert'); this.root.append(warning); }
-    const toolbar = node('div', 'unit-toolbar'); this.root.append(toolbar);
-    if (this.kind === 'cv') {
-      const select = node('select'); select.id = 'data-group'; select.setAttribute('aria-label', this.text('sectionTitle'));
-      const groups = [...new Set([...groupKeys(this.active.value), ...groupKeys(this.active.base)])];
-      if (!groups.includes(this.group)) this.group = 'basic';
-      select.append(new Option(this.text('basic'), 'basic'));
-      for (const group of groups) select.append(new Option((groupAt(this.active.value, group) || groupAt(this.active.base, group)).title, group));
-      select.value = this.group; select.addEventListener('change', () => { this.scope = null; this.conflict = null; this.group = select.value; this.listScroll = 0; this.render(); }); toolbar.append(select);
-    } else {
-      const input = node('input'); input.type = 'search'; input.id = 'data-search'; input.value = this.query || ''; input.placeholder = this.text('search'); input.setAttribute('aria-label', this.text('search'));
-      input.addEventListener('input', () => { this.query = input.value; this.filterRows(); }); toolbar.append(input);
-      const category = node('select'); category.id = 'data-category'; category.setAttribute('aria-label', lang === 'zh' ? '类别' : 'Category');
-      category.append(new Option(this.text('all'), ''), new Option(lang === 'zh' ? '期刊' : 'Journal', 'journal'), new Option(lang === 'zh' ? '预印本' : 'Preprint', 'preprint')); category.value = this.category || '';
-      category.addEventListener('change', () => { this.category = category.value; this.filterRows(); }); toolbar.append(category);
-      const year = node('select'); year.id = 'data-year'; year.setAttribute('aria-label', lang === 'zh' ? '年份' : 'Year'); year.append(new Option(this.text('allYears'), ''));
-      for (const number of [...new Set([...this.active.base, ...this.active.value].map(item => item.year).concat(this.year ? [Number(this.year)] : []))].sort((a, b) => b - a)) year.append(new Option(String(number), String(number)));
-      year.value = this.year || ''; year.addEventListener('change', () => { this.year = year.value; this.filterRows(); }); toolbar.append(year);
+    if (this.kind === 'publications') {
+      const toolbar = node('div', 'unit-toolbar'), input = node('input'); input.type = 'search'; input.id = 'data-search'; input.value = this.query || ''; input.placeholder = this.text('search'); input.setAttribute('aria-label', this.text('search'));
+      input.addEventListener('input', () => { this.query = input.value; this.filterRows(); }); toolbar.append(input); this.root.append(toolbar);
     }
     const list = node('div', 'unit-list'); this.root.append(list);
-    if (this.kind === 'cv' && this.group === 'basic') {
-      for (const name of ['intro', 'pdf']) this.row(list, { type: 'field', key: name }, this.text(name), this.active.value[name]);
+    if (this.kind === 'cv') {
+      for (const name of ['intro', 'pdf']) {
+        const item = node('section', 'unit-basic'); item.dataset.unit = scopeKey({ type: 'field', key: name }); list.append(item); this.form(item, { type: 'field', key: name }, this.text(name));
+      }
+      for (const group of new Set([...groupKeys(this.active.base), ...groupKeys(this.active.value)])) this.section(list, group);
     } else {
-      const group = this.group;
-      if (this.kind === 'cv') this.row(list, { type: 'section', group }, this.text('metadata'), (groupAt(this.active.value, group) || groupAt(this.active.base, group)).title);
-      const deletedSection = this.kind === 'cv' && !groupAt(this.active.value, group);
-      const union = new Map((deletedSection ? [] : [...(entriesAt(this.kind, this.active.base, group) || []), ...(entriesAt(this.kind, this.active.value, group) || [])]).map(item => [item._id, item]));
-      for (const item of union.values()) this.row(list, { type: 'entry', ...(this.kind === 'cv' ? { group } : {}), id: item._id }, titleOf(item), [item.year || item.date || item.date_start, item.status ? (item.status === 'journal' ? (lang === 'zh' ? '期刊' : 'Journal') : (lang === 'zh' ? '预印本' : 'Preprint')) : item.institution || item.location].filter(Boolean).join(' · '));
+      const union = new Map([...this.active.base, ...this.active.value].map(item => [item._id, item]));
+      [...union.values()].forEach((item, index) => this.row(list, { type: 'entry', id: item._id }, titleOf(item), [item.year, item.status === 'journal' ? (lang === 'zh' ? '期刊' : 'Journal') : (lang === 'zh' ? '预印本' : 'Preprint')].filter(Boolean).join(' · '), index + 1));
     }
     this.markRows(); this.filterRows(); this.updateSelection(); this.backup();
     this.setStatus(this.scope ? this.text(this.currentDirty() ? 'dirty' : 'clean') : '');
@@ -164,24 +198,20 @@ export class StructuredEditor extends DataEditor {
     for (const row of this.root.querySelectorAll('[data-unit]')) {
       const scope = JSON.parse(row.dataset.unit), item = unitValue(this.kind, this.active.value, scope) || unitValue(this.kind, this.active.base, scope);
       const selected = scopeKey(scope) === scopeKey(this.scope);
-      row.hidden = !selected && (!!this.query && ![item.title, item.authors, item.publisher, item.year].join(' ').toLocaleLowerCase().includes(this.query.trim().toLocaleLowerCase()) || !!this.category && item.status !== this.category || !!this.year && String(item.year) !== this.year);
+      row.hidden = !selected && (!!this.query && ![item.title, item.authors, item.publisher, item.year].join(' ').toLocaleLowerCase().includes(this.query.trim().toLocaleLowerCase()));
     }
     this.root.querySelector('.unit-empty')?.remove();
     if (![...this.root.querySelectorAll('.unit-item')].some(row => !row.hidden)) this.root.querySelector('.unit-list').append(node('p', 'unit-empty', this.text('empty')));
   }
   form(root, scope, title) {
     const form = node('div', 'unit-form'); form.setAttribute('aria-label', title); root.append(form);
-    const heading = scope.type === 'entry' ? this.kind === 'publications' ? this.text('publication') : (groupAt(this.active.value, scope.group) || groupAt(this.active.base, scope.group)).title : title;
-    form.append(node('h2', 'unit-heading', heading));
     const value = scope.type === 'section' ? groupAt(this.active.value, scope.group) : unitValue(this.kind, this.active.value, scope);
     if (value === undefined) { form.append(node('p', 'unit-deleted', this.text('removed'))); return; }
     const properties = node('div', 'data-properties'); form.append(properties);
     if (scope.type === 'field') {
-      const label = node('label'); label.append(node('span', 'sr-only', this.text(scope.key))); this.fields(label, value, [scope.key], this.active.value, scope.key); properties.append(label);
+      const label = node('label'); label.append(node('span', '', this.text(scope.key)), node('span', 'unit-marker')); this.fields(label, value, [scope.key], this.active.value, scope.key); properties.append(label);
     } else {
-      const advanced = node('details', 'unit-more'), summary = node('summary', '', this.text('more')); advanced.append(summary);
-      const secondary = node('div', 'data-properties'); advanced.append(secondary);
-      const defaults = this.kind === 'publications' ? { title: '', authors: '', status: 'preprint', year: new Date().getFullYear(), publisher: '', volume: '', pages: '', pdf: '', code: '', url: '' } : {};
+      const defaults = this.kind === 'publications' ? { title: '', authors: '', status: 'preprint', year: new Date().getFullYear(), publisher: '', volume: '', pages: '', pdf: '', code: '', url: '' } : scope.group === 'research' ? {} : scope.group === 'talks' ? { title: '', type: 'seminar', event_url: '', location: '', date_start: '', date_end: '', slides: '' } : { title: '', date: '', institution: '', detail: '', location: '' };
       const exposed = Object.fromEntries(Object.entries({ ...defaults, ...value }).filter(([key]) => key !== '_id' && !(scope.type === 'section' && ['items', 'entries'].includes(key))));
       for (const [name, item] of Object.entries(exposed)) {
         if (item && typeof item === 'object') continue;
@@ -190,9 +220,8 @@ export class StructuredEditor extends DataEditor {
         this.fields(wrapper, item, ['unit', name], value, name);
         const input = wrapper.querySelector('input, textarea, select');
         if (input) { if (input.tagName === 'TEXTAREA') input.rows = name === 'text' || name === 'detail' ? 4 : name === 'title' ? 3 : 2; input.dataset.field = name; if (name === 'text') input.setAttribute('aria-label', this.text('text')); }
-        if (this.kind === 'publications' && ['volume', 'pages', 'pdf', 'code', 'url'].includes(name)) secondary.append(wrapper); else properties.append(wrapper);
+        properties.append(wrapper);
       }
-      if (secondary.childElementCount) form.append(advanced);
     }
   }
   addSection() {
@@ -281,7 +310,11 @@ export class StructuredEditor extends DataEditor {
       if (conflict.scope.type === 'section' && conflict.mine === undefined) { setGroup(this.active.base, conflict.scope.group, conflict.theirs); setGroup(this.active.value, conflict.scope.group, conflict.theirs); }
       else { putUnit(this.kind, this.active.base, conflict.scope, conflict.theirs); putUnit(this.kind, this.active.value, conflict.scope, conflict.theirs); }
       this.conflict = null; this.changed(); this.render();
-    })); this.root.querySelector('.unit-form')?.append(panel);
+    }));
+    const target = this.findUnit(conflict.scope);
+    if (conflict.scope.type === 'section') target?.insertBefore(panel, target.querySelector(':scope > .section-entries'));
+    else target?.querySelector('.unit-form')?.append(panel);
+    for (let parent = target; parent; parent = parent.parentElement) if (parent.tagName === 'DETAILS') parent.open = true;
   }
   clear() { super.clear(); this.scope = null; this.conflict = null; }
 }

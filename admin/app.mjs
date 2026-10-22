@@ -15,7 +15,7 @@ import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate
 import { entryFrom, pagePath } from './routes.mjs?v=18';
 
 import { DataEditor, dataPath } from './data-editor.mjs?v=27';
-import { StructuredEditor } from './structured-editor.mjs?v=27';
+import { StructuredEditor } from './structured-editor.mjs?v=28';
 
 const parameters = new URL(location.href).searchParams;
 const embedded = parameters.get('embedded') === '1' && window.parent !== window;
@@ -54,8 +54,6 @@ const dataEditor = new StructuredEditor({ root: $('data-content'), locale: () =>
     $('data-export').disabled = !context.selected;
     $('data-reload').disabled = busy || !context.dirty;
     $('data-publish').disabled = busy || !context.dirty || context.legacyBlocked;
-    $('data-back').hidden = view !== 'data' || !context.detail || document.body.dataset.compact !== 'true';
-    $('data-back').setAttribute('aria-label', t('backToList'));
     for (const button of document.querySelectorAll('[data-structure-action]')) {
       const action = button.dataset.structureAction;
       button.disabled = busy && !action.startsWith('export') || ['reset-all', 'save-all'].includes(action) && !dataEditor.differences().length || action === 'save-all' && context.legacyBlocked;
@@ -172,7 +170,6 @@ function renderWorkspace() {
   $('workspace-title').textContent = t(editing ? 'body' : section === 'cv' ? 'navCV' : section === 'publications' ? 'navPublications' : section === 'blog' ? 'navBlog' : view === 'login' ? 'loginHeading' : 'homeHeading');
   $('cv-tools').hidden = view !== 'data';
   for (const menu of document.querySelectorAll('[data-cv-only]')) menu.hidden = section !== 'cv';
-  $('data-back').hidden = view !== 'data' || !dataEditor.scope || document.body.dataset.compact !== 'true';
   $('workspace-title').hidden = editing || !$('cv-tools').hidden; $('workspace-tabs').hidden = !editing;
   $('article-preview-toggle').hidden = !editing || document.body.dataset.compact !== 'true';
   tellParent({ type: 'editor-workspace', article: editing, path: originalPath || $('path').value });
@@ -323,10 +320,28 @@ for (const button of document.querySelectorAll('[data-structure-action]')) butto
   if (action === 'reset-all') dataEditor.reset(true);
   if (action === 'save-all') void run(async () => { publishing = true; await dataEditor.publish(true); });
 });
-$('data-back').addEventListener('click', () => dataEditor.back());
-for (const menu of document.querySelectorAll('#cv-tools > details')) menu.addEventListener('toggle', () => {
-  if (menu.open) for (const other of document.querySelectorAll('#cv-tools > details')) if (other !== menu) other.open = false;
-});
+function positionContextMenus() {
+  for (const menu of document.querySelectorAll('#cv-tools > details[open]')) {
+    const popup = menu.querySelector('.context-menu'); popup.style.transform = '';
+    const bounds = popup.getBoundingClientRect();
+    const offset = Math.max(12 - bounds.left, Math.min(0, innerWidth - 12 - bounds.right));
+    popup.style.transform = `translateX(${offset}px)`;
+  }
+}
+for (const menu of document.querySelectorAll('#cv-tools > details')) {
+  menu.querySelector(':scope > summary').addEventListener('click', event => {
+    event.preventDefault(); const opening = !menu.open;
+    for (const other of document.querySelectorAll('#cv-tools > details')) other.open = false;
+    menu.open = opening;
+    if (opening) positionContextMenus();
+  });
+  menu.addEventListener('toggle', () => {
+    if (menu.open) {
+      for (const other of document.querySelectorAll('#cv-tools > details')) if (other !== menu) other.open = false;
+      positionContextMenus();
+    }
+  });
+}
 document.addEventListener('click', event => { if (!event.target.closest('#cv-tools')) for (const menu of document.querySelectorAll('#cv-tools > details')) menu.open = false; });
 document.addEventListener('keydown', event => { if (event.key === 'Escape') for (const menu of document.querySelectorAll('#cv-tools > details')) menu.open = false; });
 function fillFields() {
@@ -640,6 +655,7 @@ async function save(action, retract = false) {
   if (pending) void checkProgress();
 }
 function updateViewport() {
+  positionContextMenus();
   if (!embedded) { document.body.dataset.compact = String(innerWidth <= 800); if (dataEditor.records) dataEditor.updateSelection(); }
   const geometry = viewportGeometry(window.visualViewport, window.innerHeight);
   document.documentElement.style.setProperty('--editor-top', `${geometry.top}px`);
