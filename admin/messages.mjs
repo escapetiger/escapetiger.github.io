@@ -142,3 +142,9 @@ export const messages = {
 
 Object.assign(messages.en, { sectionMenu: 'Section', entryMenu: 'Entry', addSection: 'Add section', deleteSection: 'Delete section', addEntry: 'Add entry', removeEntry: 'Remove entry', citation: 'Citation', referenceDelete: 'Remove this reference? Existing citation numbers in the article will stay unchanged.' });
 Object.assign(messages.zh, { sectionMenu: '栏目', entryMenu: '条目', addSection: '新增栏目', deleteSection: '删除栏目', addEntry: '新增条目', removeEntry: '删除条目', citation: '文献信息', referenceDelete: '删除此参考文献？正文中的引用编号将保持不变。' });
+
+Object.assign(messages.en, { dataExportAll: 'Export all · English', dataResetAll: 'Reset all · English', dataSaveAll: 'Save all · English', backToList: 'Back to list', legacyExport: 'Export older backup' });
+Object.assign(messages.zh, { dataExportAll: '导出全部 · 中文', dataResetAll: '重置全部 · 中文', dataSaveAll: '保存全部 · 中文', backToList: '返回列表', legacyExport: '导出旧版备份' });
+
+messages.en.archiveLegacy = 'Archive older backup and continue';
+messages.zh.archiveLegacy = '保留旧版备份，使用新版';

@@ -17,11 +17,11 @@
   <script src="ink-click.js?v=14" defer></script>
   <link id="editor-fonts" rel="stylesheet" href="vendor/wenkai/font.css" media="print">
   <link rel="stylesheet" href="site.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=26">
+  <link rel="stylesheet" href="admin.css?v=27">
   <link rel="stylesheet" href="blog-cards.css?v=25">
   <script src="vendor/js-yaml.min.js" defer></script>
   <link rel="stylesheet" href="scrollbars.css?v=22">
-  <script src="app.mjs?v=25" type="module"></script>
+  <script src="app.mjs?v=27" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
@@ -47,11 +47,12 @@
   </header>
   <header class="workspace-header">
     <h1 id="workspace-title"></h1>
-    <nav id="cv-tools" class="context-tools" aria-label="CV" hidden>
+    <button id="data-back" type="button" class="quiet data-back" aria-label="Back" hidden>←</button>
+    <nav id="cv-tools" class="context-tools" aria-label="Data editor" hidden>
       <details><summary data-i18n="fileTab"></summary><div class="context-menu">
-        <button type="button" data-file-action="data-export" data-i18n="sectionExport"></button><button type="button" data-file-action="data-reload" data-i18n="sectionReset"></button><button type="button" data-file-action="data-publish" data-i18n="sectionSave"></button>
+        <button type="button" data-structure-action="export-all" data-i18n="dataExportAll"></button><button type="button" data-structure-action="reset-all" data-i18n="dataResetAll"></button><button type="button" data-structure-action="save-all" data-i18n="dataSaveAll"></button><button type="button" data-structure-action="export-legacy" data-i18n="legacyExport" hidden></button><button type="button" data-structure-action="archive-legacy" data-i18n="archiveLegacy" hidden></button>
       </div></details>
-      <details><summary data-i18n="sectionMenu"></summary><div class="context-menu">
+      <details data-cv-only><summary data-i18n="sectionMenu"></summary><div class="context-menu">
         <button type="button" data-cv-action="add-section" data-i18n="addSection"></button><button type="button" data-cv-action="delete-section" data-i18n="deleteSection" disabled></button>
       </div></details>
       <details><summary data-i18n="entryMenu"></summary><div class="context-menu">
@@ -100,6 +101,7 @@
     <section id="data-view" class="view" hidden>
       <p data-notice role="status" hidden></p>
       <div id="data-content"></div>
+      <p id="data-item-status" class="data-item-status" role="status" aria-live="polite"></p>
       <div class="data-actions"><button id="data-export" type="button" data-i18n="sectionExport"></button><button id="data-reload" type="button" data-i18n="sectionReset"></button><button id="data-publish" type="button" class="primary" data-i18n="sectionSave"></button></div>
     </section>
     <section id="new-view" class="view narrow" hidden>

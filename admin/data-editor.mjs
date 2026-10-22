@@ -44,8 +44,12 @@ export function parseData(kind, text, incomplete = false) {
       const section = sections.includes(key) ? value[key] : custom[key];
       if (!object(section) || typeof section.title !== 'string' || (!incomplete && !section.title.trim()) || !Array.isArray(section[key === 'research' ? 'items' : 'entries'])) throw new Error(`Invalid CV section: ${key}`);
       for (const entry of section[key === 'research' ? 'items' : 'entries']) {
-        if (key === 'research' ? typeof entry !== 'string' : !object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim())) throw new Error(`Invalid CV entry: ${key}`);
+        if (key === 'research' ? typeof entry !== 'string' && (!object(entry) || typeof entry.text !== 'string' || !incomplete && !entry.text.trim()) : !object(entry) || typeof entry.title !== 'string' || (!incomplete && !entry.title.trim())) throw new Error(`Invalid CV entry: ${key}`);
         if (key === 'talks' && !['seminar', 'workshop', 'conference'].includes(entry.type)) throw new Error('Invalid talk type.');
+        if (key === 'talks' && !incomplete) for (const name of ['date_start', 'date_end']) {
+          const date = entry[name];
+          if (date && (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date)) throw new Error('Talk dates must use a valid YYYY-MM-DD date.');
+        }
       }
     }
   } else throw new Error('Invalid section.');
@@ -71,7 +75,7 @@ export async function saveData(api, kind, records) {
   api.latestSnapshot = null;
   return { commit: commit.sha, files: entries };
 }
-const labels = {
+export const dataLabels = {
   zh: { subtitle: '座右铭', image: '头像链接', imageTitle: '头像描述', social: '社交链接', name: '图标', contactLabel: '联系链接文字', contactURL: '联系链接', intro: '个人简介', pdf: 'PDF 路径', research: '研究方向', appointments: '工作经历', education: '教育经历', visiting: '访问经历', service: '学术服务', talks: '学术报告', posters: '海报', teaching: '教学经历', title: '标题', items: '条目', entries: '条目', date: '日期', institution: '机构', detail: '说明', location: '地点', type: '类型', event_url: '活动链接', date_start: '开始日期', date_end: '结束日期', slides: '幻灯片路径', authors: '作者', publisher: '期刊 / 出版物', volume: '卷期', pages: '页码', year: '年份', status: '类别', code: '代码链接', url: '论文链接' },
   en: { subtitle: 'Motto', image: 'Avatar URL', imageTitle: 'Avatar description', social: 'Social links', name: 'Icon', contactLabel: 'Contact label', contactURL: 'Contact URL', intro: 'Introduction', pdf: 'PDF path', research: 'Research', appointments: 'Appointments', education: 'Education', visiting: 'Visiting experience', service: 'Academic service', talks: 'Talks', posters: 'Posters', teaching: 'Teaching', title: 'Title', items: 'Items', entries: 'Entries', date: 'Date', institution: 'Institution', detail: 'Details', location: 'Location', type: 'Type', event_url: 'Event URL', date_start: 'Start date', date_end: 'End date', slides: 'Slides path', authors: 'Authors', publisher: 'Journal / publisher', volume: 'Volume', pages: 'Pages', year: 'Year', status: 'Category', code: 'Code URL', url: 'Paper URL' }
 };
@@ -163,7 +167,7 @@ export class DataEditor {
   }
   cvFields(root, value) {
     for (const key of ['intro', 'pdf']) {
-      const wrapper = document.createElement('label'); wrapper.textContent = labels[this.locale()][key];
+      const wrapper = document.createElement('label'); wrapper.textContent = dataLabels[this.locale()][key];
       this.fields(wrapper, value[key], [key], value, key);
       for (const type of ['focusin', 'click']) wrapper.addEventListener(type, () => { this.selection = null; this.updateSelection(); }); root.append(wrapper);
     }
@@ -188,7 +192,7 @@ export class DataEditor {
     root.append(group);
   }
   fields(root, value, path, parent, key) {
-    const lang = this.locale(), label = name => labels[lang][name] || name;
+    const lang = this.locale(), label = name => dataLabels[lang][name] || name;
     if (Array.isArray(value)) {
       value.forEach((entry, index) => {
         const details = document.createElement(typeof entry === 'string' ? 'div' : 'details'); details.className = 'surface data-entry'; details.dataset.group = [...path, index].join('.');
@@ -241,7 +245,7 @@ export class DataEditor {
       if (typeof value === 'boolean') { input.type = 'checkbox'; input.checked = value; } else input.value = value ?? '';
       input.dataset.field = path.join('.'); input.setAttribute('aria-label', typeof key === 'number' ? `${label('items')} ${key + 1}` : label(key)); input.spellcheck = false;
       if (input.tagName === 'TEXTAREA') input.rows = key === 'intro' || key === 'title' ? 3 : 2;
-      input.addEventListener('input', () => { parent[key] = typeof value === 'number' ? Number(input.value) : typeof value === 'boolean' ? input.checked : input.value; this.changed();
+      input.addEventListener('input', () => { parent[key] = typeof value === 'number' ? Number.isFinite(Number(input.value)) ? Number(input.value) : 0 : typeof value === 'boolean' ? input.checked : input.value; this.changed();
         if (key === 'title' || typeof key === 'number') {
           const title = input.closest('.data-entry')?.querySelector('.data-entry-title');
           if (title) title.textContent = input.value || '…';

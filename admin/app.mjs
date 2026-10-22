@@ -3,7 +3,7 @@ import { referenceRows, serializeReferences, addReference } from './references.m
 import { articleSections, replaceArticleSection } from './article-sections.mjs?v=25';
 import { newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=25';
+import { messages } from './messages.mjs?v=27';
 import { BackupStore } from './backups.mjs?v=11';
 import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
@@ -14,7 +14,8 @@ import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './aut
 import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
 import { entryFrom, pagePath } from './routes.mjs?v=18';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=25';
+import { DataEditor, dataPath } from './data-editor.mjs?v=27';
+import { StructuredEditor } from './structured-editor.mjs?v=27';
 
 const parameters = new URL(location.href).searchParams;
 const embedded = parameters.get('embedded') === '1' && window.parent !== window;
@@ -35,21 +36,33 @@ let backupSession = null, assets = [], backupTimer, backupQueue = Promise.resolv
 let imageSelection = { start: 0, end: 0 }, objectURLs = new Map(), libraryFrame = 0;
 const t = key => messages[locale][key];
 let section = 'home';
-function sectionPublished(result) {
+function sectionPublished(result, keepView = false) {
   clearTimeout(pollTimer); ++pollEpoch;
   const file = result.files.find(file => file.path === dataPath(result.kind, locale));
   pending = { ...file, files: result.files, kind: result.kind, commit: result.commit, action: 'publish',
     title: t({ home: 'homeHeading', cv: 'navCV', publications: 'navPublications' }[result.kind]), sourcePage: entry.page,
     url: `/${locale}/${result.kind === 'home' ? '' : `${result.kind}/`}`, started: Date.now() };
   previewHome();
-  savePending(); progressState = { stage: 'queued' }; renderProgress(); setView('result'); void checkProgress();
+  savePending(); progressState = { stage: 'queued' }; renderProgress(); if (!keepView) setView('result'); void checkProgress();
 }
-const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); }, published: sectionPublished, selectionChanged(context) {
-  for (const button of document.querySelectorAll('[data-cv-action]')) {
-    const action = button.dataset.cvAction;
-    button.disabled = busy || action === 'remove-entry' && !context.entry || ['add-entry', 'delete-section'].includes(action) && !context.section;
-  }
-} });
+const dataEditor = new StructuredEditor({ root: $('data-content'), locale: () => locale, api: () => api,
+  notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); }, published: result => sectionPublished(result, true), selectionChanged(context) {
+    for (const button of document.querySelectorAll('[data-cv-action]')) {
+      const action = button.dataset.cvAction;
+      button.disabled = busy || action === 'remove-entry' && !context.entry || action === 'delete-section' && !context.section || action === 'add-entry' && dataEditor.kind === 'cv' && !context.section;
+    }
+    $('data-export').disabled = !context.selected;
+    $('data-reload').disabled = busy || !context.dirty;
+    $('data-publish').disabled = busy || !context.dirty || context.legacyBlocked;
+    $('data-back').hidden = view !== 'data' || !context.detail || document.body.dataset.compact !== 'true';
+    $('data-back').setAttribute('aria-label', t('backToList'));
+    for (const button of document.querySelectorAll('[data-structure-action]')) {
+      const action = button.dataset.structureAction;
+      button.disabled = busy && !action.startsWith('export') || ['reset-all', 'save-all'].includes(action) && !dataEditor.differences().length || action === 'save-all' && context.legacyBlocked;
+      if (action === 'export-legacy') button.hidden = !context.legacy;
+      if (action === 'archive-legacy') button.hidden = !context.legacyBlocked;
+    }
+  } });
 const homeEditor = new DataEditor({ root: $('home-fields'), locale: () => locale, api: () => api,
   notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); previewHome(); }, published: sectionPublished });
 function previewHome() {
@@ -124,6 +137,7 @@ function setBusy(value) {
     if (!['export', 'data-export', 'home-export', 'locale', 'theme-toggle'].includes(node.id) && node.dataset.fileAction !== 'data-export') node.disabled = value;
   });
   document.querySelectorAll('.view').forEach(node => node.setAttribute('aria-busy', String(value && !node.hidden)));
+  if (view === 'data') $('locale').disabled = value;
   if (!value && dataEditor.records) dataEditor.updateSelection();
 }
 async function mayReplace() { return !dirty || await flushBackup(true) || confirm(t('discard')); }
@@ -156,7 +170,9 @@ function schedulePreview() { clearTimeout(previewTimer); if (view === 'editor') 
 function renderWorkspace() {
   const editing = view === 'editor';
   $('workspace-title').textContent = t(editing ? 'body' : section === 'cv' ? 'navCV' : section === 'publications' ? 'navPublications' : section === 'blog' ? 'navBlog' : view === 'login' ? 'loginHeading' : 'homeHeading');
-  $('cv-tools').hidden = !(view === 'data' && section === 'cv');
+  $('cv-tools').hidden = view !== 'data';
+  for (const menu of document.querySelectorAll('[data-cv-only]')) menu.hidden = section !== 'cv';
+  $('data-back').hidden = view !== 'data' || !dataEditor.scope || document.body.dataset.compact !== 'true';
   $('workspace-title').hidden = editing || !$('cv-tools').hidden; $('workspace-tabs').hidden = !editing;
   $('article-preview-toggle').hidden = !editing || document.body.dataset.compact !== 'true';
   tellParent({ type: 'editor-workspace', article: editing, path: originalPath || $('path').value });
@@ -296,8 +312,18 @@ $('reference-add').addEventListener('click', () => {
 });
 for (const button of document.querySelectorAll('[data-cv-action], [data-file-action]')) button.addEventListener('click', () => {
   button.closest('details').open = false;
-  if (button.dataset.fileAction) $(button.dataset.fileAction).click(); else dataEditor.perform(button.dataset.cvAction);
+  if (button.dataset.fileAction) $(button.dataset.fileAction).click(); else if (!busy) dataEditor.perform(button.dataset.cvAction);
 });
+for (const button of document.querySelectorAll('[data-structure-action]')) button.addEventListener('click', () => {
+  button.closest('details').open = false;
+  const action = button.dataset.structureAction;
+  if (action === 'export-all') dataEditor.export(true);
+  if (action === 'export-legacy') dataEditor.exportLegacy();
+  if (action === 'archive-legacy') dataEditor.archiveLegacy();
+  if (action === 'reset-all') dataEditor.reset(true);
+  if (action === 'save-all') void run(async () => { publishing = true; await dataEditor.publish(true); });
+});
+$('data-back').addEventListener('click', () => dataEditor.back());
 for (const menu of document.querySelectorAll('#cv-tools > details')) menu.addEventListener('toggle', () => {
   if (menu.open) for (const other of document.querySelectorAll('#cv-tools > details')) if (other !== menu) other.open = false;
 });
@@ -502,7 +528,7 @@ function restorePending() {
         !['draft', 'publish'].includes(record.action) || !Number.isFinite(record.started)) return;
     if (['home', 'cv', 'publications'].includes(record.kind)) {
       if (!['en', 'zh'].some(lang => record.path === dataPath(record.kind, lang)) ||
-          !Array.isArray(record.files) || record.files.length !== 2 || !['en', 'zh'].every(lang => record.files.some(file => file.path === dataPath(record.kind, lang) && /^[0-9a-f]{40}$/.test(file.sha)))) return;
+          !Array.isArray(record.files) || ![1, 2].includes(record.files.length) || new Set(record.files.map(file => file.path)).size !== record.files.length || !record.files.every(file => ['en', 'zh'].some(lang => file.path === dataPath(record.kind, lang)) && /^[0-9a-f]{40}$/.test(file.sha))) return;
     } else postPath(record.path);
     if (record.url && (typeof record.url !== 'string' || !record.url.startsWith('/') || record.url.startsWith('//'))) return;
     pending = record;
@@ -512,6 +538,11 @@ function restorePending() {
 function renderProgress() {
   if (!pending) return;
   const stage = progressState.stage;
+  if (view === 'data' && pending.kind === section && !dataEditor.currentDirty()) {
+    if (stage === 'live') dataEditor.setStatus(dataEditor.text('live'));
+    else if (['failed', 'disabled'].includes(stage)) dataEditor.setStatus(dataEditor.text('deploymentFailed'));
+    else if (['timeout', 'unverified', 'excluded'].includes(stage)) dataEditor.setStatus(dataEditor.text('deploymentPending'));
+  }
   $('result-title').textContent = typeof pending.title === 'string' ? pending.title : pending.path;
   $('result-status').textContent = t(stage);
   $('result-help').hidden = !['excluded', 'failed', 'disabled', 'unverified', 'timeout'].includes(stage);
@@ -609,6 +640,7 @@ async function save(action, retract = false) {
   if (pending) void checkProgress();
 }
 function updateViewport() {
+  if (!embedded) { document.body.dataset.compact = String(innerWidth <= 800); if (dataEditor.records) dataEditor.updateSelection(); }
   const geometry = viewportGeometry(window.visualViewport, window.innerHeight);
   document.documentElement.style.setProperty('--editor-top', `${geometry.top}px`);
   const workspaceHeight = Math.ceil(document.querySelector('.workspace-header').getBoundingClientRect().height);
@@ -631,7 +663,7 @@ $('home-export').addEventListener('click', () => homeEditor.export());
 $('home-reload').addEventListener('click', () => { if (confirm(homeEditor.text('reload'))) void run(async () => { await homeEditor.open('home', true); previewHome(); }); });
 $('home-publish').addEventListener('click', () => void run(async () => { publishing = true; await homeEditor.publish(); }));
 $('data-export').addEventListener('click', () => dataEditor.export());
-$('data-reload').addEventListener('click', () => { if (confirm(dataEditor.text('reload'))) void run(async () => { await dataEditor.open(section, true); }); });
+$('data-reload').addEventListener('click', () => dataEditor.reset());
 $('data-publish').addEventListener('click', () => void run(async () => { publishing = true; await dataEditor.publish(); }));
 for (const id of ['search', 'filter-state', 'filter-category', 'filter-tag', 'filter-year']) $(id).addEventListener(id === 'search' ? 'input' : 'change', renderCards);
 async function connected() {
@@ -782,6 +814,7 @@ window.addEventListener('message', async event => {
   if (event.data?.type === 'site-appearance') {
     document.body.dataset.compact = String(event.data.compact === true);
     $('article-preview-toggle').hidden = view !== 'editor' || event.data.compact !== true;
+    if (dataEditor.records) dataEditor.updateSelection();
     if (['dark', 'light'].includes(event.data.theme)) {
       document.documentElement.dataset.theme = event.data.theme;
       syncPreviewTheme();
