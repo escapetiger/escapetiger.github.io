@@ -17,11 +17,11 @@
   <script src="ink-click.js?v=14" defer></script>
   <link id="editor-fonts" rel="stylesheet" href="vendor/wenkai/font.css" media="print">
   <link rel="stylesheet" href="site.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=28">
+  <link rel="stylesheet" href="admin.css?v=29">
   <link rel="stylesheet" href="blog-cards.css?v=25">
   <script src="vendor/js-yaml.min.js" defer></script>
   <link rel="stylesheet" href="scrollbars.css?v=22">
-  <script src="app.mjs?v=28" type="module"></script>
+  <script src="app.mjs?v=29" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
@@ -47,18 +47,6 @@
   </header>
   <header class="workspace-header">
     <h1 id="workspace-title"></h1>
-    <nav id="cv-tools" class="context-tools" aria-label="Data editor" hidden>
-      <details><summary data-i18n="fileTab"></summary><div class="context-menu">
-        <button type="button" data-structure-action="export-all" data-i18n="dataExportAll"></button><button type="button" data-structure-action="reset-all" data-i18n="dataResetAll"></button><button type="button" data-structure-action="save-all" data-i18n="dataSaveAll"></button><button type="button" data-structure-action="export-legacy" data-i18n="legacyExport" hidden></button><button type="button" data-structure-action="archive-legacy" data-i18n="archiveLegacy" hidden></button>
-      </div></details>
-      <details data-cv-only><summary data-i18n="sectionMenu"></summary><div class="context-menu">
-        <button type="button" data-cv-action="add-section" data-i18n="addSection"></button><button type="button" data-cv-action="delete-section" data-i18n="deleteSection" disabled></button>
-      </div></details>
-      <details><summary data-i18n="entryMenu"></summary><div class="context-menu">
-        <button type="button" data-cv-action="add-entry" data-i18n="addEntry" disabled></button><button type="button" data-cv-action="remove-entry" data-i18n="removeEntry" disabled></button>
-      </div></details>
-    </nav>
-
     <nav id="workspace-tabs" class="editor-tabs" aria-label="Editor" hidden>
       <button type="button" data-tab="file" aria-pressed="false" data-i18n="fileTab"></button>
       <button type="button" data-tab="abstract" aria-pressed="false" data-i18n="abstractTab"></button>
@@ -86,7 +74,7 @@
       <label class="sr-only" for="search" data-i18n="search"></label><input id="search" type="search" autocomplete="off">
       <div class="filter-row">
         <label class="sr-only" for="filter-state" data-i18n="statusFilter"></label>
-        <select id="filter-state"><option value="" data-i18n="allStates"></option><option value="draft" data-i18n="draft"></option><option value="public" data-i18n="public"></option><option value="scheduled" data-i18n="scheduled"></option></select>
+        <select id="filter-state"><option value="" data-i18n="allStates"></option><option value="draft" data-i18n="draft"></option><option value="public" data-i18n="public"></option><option value="scheduled" data-i18n="scheduled"></option><option value="changed" data-i18n="unpublishedChanges"></option><option value="trash" data-i18n="trash"></option></select>
         <button id="refresh" class="quiet" data-i18n="refresh"></button>
       </div>
       <div class="taxonomy-filters">
@@ -115,16 +103,14 @@
       </form>
     </section>
     <section id="editor-view" class="view editor-shell" hidden>
-      <p data-notice class="editor-notice" role="status" hidden></p>
+      <p data-notice class="editor-notice" role="status" hidden></p><section id="draft-conflict" role="alert" hidden></section>
       <div class="editor-content">
         <div id="body-panel" class="body-panel" data-panel="body">
-          <div class="writing-tools" role="group" aria-label="Markdown">
-            <button type="button" data-insert="heading" aria-label="Heading">H2</button><button type="button" data-insert="bold" aria-label="Bold"><strong>B</strong></button><button type="button" data-insert="link" data-i18n="insertLink"></button><button type="button" data-insert="list" data-i18n="insertList"></button><button type="button" data-insert="math" data-i18n="insertMath"></button><button id="insert-image" type="button" data-i18n="insertImage"></button>
-            <input id="image-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+          <div class="writing-tools" role="group" aria-label="Blocks"><details class="block-inserter"><summary data-i18n="addBlock"></summary><div class="block-add-menu"><button type="button" data-block-add="paragraph" data-i18n="blockParagraph"></button><button type="button" data-block-add="heading" data-i18n="blockHeading"></button><button type="button" data-block-add="blockquote" data-i18n="blockQuote"></button><button type="button" data-block-add="bullet_list" data-i18n="blockList"></button><button type="button" data-block-add="fence" data-i18n="blockCode"></button><button type="button" data-block-add="site_math_block" data-i18n="blockFormula"></button><button type="button" data-block-add="image" data-i18n="blockImage"></button></div></details><button id="focus-writing" type="button" aria-pressed="false" data-i18n="focusWriting"></button><button id="insert-image" type="button" data-i18n="insertImage"></button><input id="image-input" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
           </div>
           <div id="image-tray" class="image-tray" hidden></div>
           <label class="sr-only" for="source" data-i18n="body"></label>
-          <textarea id="source" spellcheck="false" autocapitalize="none" autocomplete="off" autocorrect="off"></textarea>
+          <div id="block-editor" class="block-editor"></div><textarea hidden id="source" spellcheck="false" autocapitalize="none" autocomplete="off" autocorrect="off"></textarea>
         </div>
         <div id="preview-panel" class="preview-panel"><p id="preview-loading" class="hint preview-hint" role="status" data-i18n="previewLoading" hidden></p><iframe id="preview-frame" title="Article preview" sandbox="allow-same-origin" data-src="preview.html?v=25"></iframe></div>
         <div id="abstract-panel" class="form-panel prose-panel" data-panel="abstract" hidden>
@@ -135,16 +121,16 @@
           <div id="reference-rows" class="data-fields"></div><div class="reference-actions"><button type="button" id="reference-add" data-i18n="addEntry"></button></div>
         </div>
         <div id="file-panel" class="form-panel" data-panel="file" hidden>
-          <div class="file-actions"><button type="button" id="back" class="quiet" data-i18n="navBlog"></button><button type="button" id="editor-backups" class="quiet" data-i18n="history"></button></div>
+          <div class="publication-actions"><button type="button" id="reset-whole" data-i18n="resetArticle"></button><button type="button" id="save-whole" data-i18n="saveArticle"></button><button type="button" id="publish-article" data-i18n="publishUpdate"></button><button type="button" id="unpublish-article" data-i18n="unpublish"></button><button type="button" id="cloud-history" data-i18n="cloudHistory"></button></div><div id="cloud-revisions"></div><div class="file-actions"><button type="button" id="back" class="quiet" data-i18n="navBlog"></button><button type="button" id="editor-backups" class="quiet" data-i18n="history"></button></div>
           <label for="path" data-i18n="path"></label><input id="path" autocapitalize="none" spellcheck="false">
-          <label for="publication-state" data-i18n="statusFilter"></label><select id="publication-state"><option value="draft" data-i18n="draftKind"></option><option value="public" data-i18n="postKind"></option></select>
+          <p id="article-state-label" class="muted"></p><input type="hidden" id="publication-state" value="draft">
           <label for="title" data-i18n="title"></label><input id="title" required>
           <label for="date" data-i18n="date"></label><input id="date" type="date">
           <label for="tags" data-i18n="tags"></label><input id="tags">
           <label for="categories" data-i18n="categories"></label><input id="categories">
         </div>
       </div>
-      <footer class="editor-footer"><p id="backup-status" class="sr-only" role="status"></p><div class="actions"><button id="export" type="button" data-i18n="sectionExport"></button><button id="article-reset" type="button" data-i18n="sectionReset"></button><button id="article-save" type="button" class="primary" data-i18n="sectionSave"></button></div></footer>
+      <footer class="editor-footer"><p id="backup-status" class="article-save-status" role="status"></p><div class="actions"><button id="export" type="button" data-i18n="sectionExport"></button><button id="article-reset" type="button" data-i18n="sectionReset"></button><button id="article-save" type="button" class="primary" data-i18n="sectionSave"></button></div></footer>
     </section>
     <section id="backups-view" class="view" hidden>
       <button id="backups-back" class="quiet back" data-i18n="cancel"></button><div class="page-heading"><h1 data-i18n="backups"></h1><button id="backups-refresh" data-i18n="refresh"></button></div>

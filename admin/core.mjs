@@ -209,7 +209,7 @@ export class GitHub {
     return text;
   }
 
-  async save({ originalPath, originalSha, path, text, action, images = [] }) {
+  async save({ originalPath, originalSha, path, text, action, images = [], workingDraft = null }) {
     const prepared = preparePost(text, path, action);
     if (images.length > 8 || new Set(images.map(image => image.path)).size !== images.length ||
         images.reduce((sum, image) => sum + (image.content?.length || 0), 0) > 16 * 1024 * 1024 + 32) throw new Error('Too many images.');
@@ -228,6 +228,7 @@ export class GitHub {
         state.files.some(file => file.path === prepared.path)) {
       throw new Error('The destination already exists. Choose a different path or open that article.');
     }
+    if (workingDraft && state.files.find(file => file.path === workingDraft.storagePath)?.sha !== workingDraft.sha) throw new Error('The cloud draft changed. Save or reopen before publishing.');
     const blob = await this.request('git/blobs', 'POST', { content: prepared.text, encoding: 'utf-8' });
     const entries = [{ path: prepared.path, mode: '100644', type: 'blob', sha: blob.sha }];
     for (const image of images) {
@@ -239,6 +240,18 @@ export class GitHub {
     if (originalPath && originalPath !== prepared.path) {
       entries.push({ path: originalPath, mode: '100644', type: 'blob', sha: null });
     }
+    let savedDraft = null;
+    if (workingDraft) {
+      const history = [...workingDraft.history];
+      if (workingDraft.originalPath && workingDraft.baseText !== prepared.text && !history.some(item => item.text === workingDraft.baseText)) history.push({ text: workingDraft.baseText, date: workingDraft.updated });
+      savedDraft = { version: 1, path: prepared.path, originalPath: prepared.path, originalSha: blob.sha, baseText: prepared.text, text: prepared.text, archived: false, updated: new Date().toISOString(), history: history.slice(-20) };
+      let content = JSON.stringify(savedDraft);
+      while (savedDraft.history.length && new TextEncoder().encode(content).length > 2 * 1024 * 1024) { savedDraft.history.shift(); content = JSON.stringify(savedDraft); }
+      if (new TextEncoder().encode(content).length > 2 * 1024 * 1024) throw new Error('Article exceeds the cloud storage limit.');
+      const record = await this.request('git/blobs', 'POST', { content, encoding: 'utf-8' });
+      entries.push({ path: workingDraft.storagePath, mode: '100644', type: 'blob', sha: record.sha });
+      savedDraft = { ...savedDraft, storagePath: workingDraft.storagePath, sha: record.sha };
+    }
     const tree = await this.request('git/trees', 'POST', { base_tree: state.tree, tree: entries });
     const commit = await this.request('git/commits', 'POST', {
       message: `${action === 'publish' ? 'Publish' : 'Save draft'}: ${prepared.path}`,
@@ -247,6 +260,6 @@ export class GitHub {
     // A non-fast-forward update fails if another device commits in the meantime.
     await this.request(`git/refs/heads/${this.branch}`, 'PATCH', { sha: commit.sha, force: false });
     this.latestSnapshot = null;
-    return { ...prepared, sha: blob.sha, commit: commit.sha };
+    return { ...prepared, sha: blob.sha, commit: commit.sha, workingDraft: savedDraft };
   }
 }

@@ -1,21 +1,25 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { referenceRows, serializeReferences, addReference } from './references.mjs?v=25';
-import { articleSections, replaceArticleSection } from './article-sections.mjs?v=25';
-import { newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
-import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=27';
-import { BackupStore } from './backups.mjs?v=11';
-import { drawBackups } from './backup-ui.mjs?v=11';
-import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
-import { renderPreview } from './preview.mjs?v=6';
-import { RepositoryCache } from './read-cache.mjs?v=9';
-import { loadPreview } from './preview-loader.mjs?v=25';
-import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=11';
-import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
-import { entryFrom, pagePath } from './routes.mjs?v=18';
+import { scopedDocument, retainScopedSection } from './document-scope.mjs?v=29';
+import { saveDraft, readDraft, draftScopes, mergeArticle, retainArticle, deleteArticle } from './working-drafts.mjs?v=29';
+import { BlockEditor } from './blocks.mjs?v=29';
+import { markdownRenderer } from './preview.mjs?v=29';
+import { referenceRows, serializeReferences, addReference } from './references.mjs?v=29';
+import { articleSections, replaceArticleSection } from './article-sections.mjs?v=29';
+import { newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=29';
+import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=29';
+import { messages } from './messages.mjs?v=29';
+import { BackupStore } from './backups.mjs?v=29';
+import { drawBackups } from './backup-ui.mjs?v=29';
+import { prepareImage, encodedImage, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=29';
+import { renderPreview } from './preview.mjs?v=29';
+import { RepositoryCache } from './read-cache.mjs?v=29';
+import { loadPreview, loadEditorResources } from './preview-loader.mjs?v=29';
+import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=29';
+import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=29';
+import { entryFrom, pagePath } from './routes.mjs?v=29';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=27';
-import { StructuredEditor } from './structured-editor.mjs?v=28';
+import { DataEditor, dataPath } from './data-editor.mjs?v=29';
+import { StructuredEditor } from './structured-editor.mjs?v=29';
 
 const parameters = new URL(location.href).searchParams;
 const embedded = parameters.get('embedded') === '1' && window.parent !== window;
@@ -28,6 +32,8 @@ const $ = id => document.getElementById(id);
 const pendingKey = 'yicai-blog-publication-v1', backups = new BackupStore();
 const sourceRepo = 'https://github.com/escapetiger/hugo-yicai';
 let locale = embedded || parameters.has('return') ? entry.lang : preferredLocale(navigator.language);
+let selectedReference = null;
+let workingDraft = null, cloudDrafts = new Map(), cloudFiles = [], cloudTask = null, cloudLoaded = false, cloudEpoch = 0;
 let baseline, previewTimer, previewEpoch = 0;
 let api, files = [], cache = new Map(), libraryEpoch = 0, hydrationEpoch = 0, listing = false, view = 'login', tab = 'body';
 let documentText = '', originalPath = null, originalSha = null, savedState = 'draft', dirty = false, busy = false;
@@ -35,6 +41,8 @@ let pending = null, progressState = { stage: 'queued' }, pollTimer, checking = f
 let backupSession = null, assets = [], backupTimer, backupQueue = Promise.resolve(), backupsReturn = 'library';
 let imageSelection = { start: 0, end: 0 }, objectURLs = new Map(), libraryFrame = 0;
 const t = key => messages[locale][key];
+const word = (en, zh) => locale === 'zh' ? zh : en;
+const blockEditor = new BlockEditor($('block-editor'), { locale: () => locale, change(body) { $('source').value = body; documentText = updatePost(documentText, {}, replaceArticleSection(readPost(documentText).body, 'body', body, locale)); changed(); } });
 let section = 'home';
 function sectionPublished(result, keepView = false) {
   clearTimeout(pollTimer); ++pollEpoch;
@@ -45,21 +53,12 @@ function sectionPublished(result, keepView = false) {
   previewHome();
   savePending(); progressState = { stage: 'queued' }; renderProgress(); if (!keepView) setView('result'); void checkProgress();
 }
-const dataEditor = new StructuredEditor({ root: $('data-content'), locale: () => locale, api: () => api,
+const dataEditor = new StructuredEditor({ saveRequested: all => void run(async () => { publishing = true; await dataEditor.publish(all); }), root: $('data-content'), locale: () => locale, api: () => api,
   notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); }, published: result => sectionPublished(result, true), selectionChanged(context) {
-    for (const button of document.querySelectorAll('[data-cv-action]')) {
-      const action = button.dataset.cvAction;
-      button.disabled = busy || action === 'remove-entry' && !context.entry || action === 'delete-section' && !context.section || action === 'add-entry' && dataEditor.kind === 'cv' && !context.section;
-    }
     $('data-export').disabled = !context.selected;
     $('data-reload').disabled = busy || !context.dirty;
     $('data-publish').disabled = busy || !context.dirty || context.legacyBlocked;
-    for (const button of document.querySelectorAll('[data-structure-action]')) {
-      const action = button.dataset.structureAction;
-      button.disabled = busy && !action.startsWith('export') || ['reset-all', 'save-all'].includes(action) && !dataEditor.differences().length || action === 'save-all' && context.legacyBlocked;
-      if (action === 'export-legacy') button.hidden = !context.legacy;
-      if (action === 'archive-legacy') button.hidden = !context.legacyBlocked;
-    }
+
   } });
 const homeEditor = new DataEditor({ root: $('home-fields'), locale: () => locale, api: () => api,
   notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); previewHome(); }, published: sectionPublished });
@@ -144,12 +143,13 @@ function queueBackup(checkpoint = false) {
   if (!documentText || !backupSession || (backupSession.suppressed && !backupSession.touched) || (!dirty && !backupSession.touched)) return Promise.resolve();
   const session = backupSession, images = activeAssets();
   const record = { id: session.id, path: $('path').value, text: documentText, originalPath, originalSha, savedState, dirty,
+    workingDraft,
     assets: images.map(({ path, url, name, uploaded }) => ({ path, url, name, uploaded })) };
   const task = backupQueue.catch(() => {}).then(async () => {
     const saved = await backups.save(record, session.revision, images.filter(asset => !asset.persisted), checkpoint);
     session.revision = saved.revision;
     images.forEach(asset => { asset.persisted = true; });
-    if (session === backupSession) $('backup-status').textContent = t('backup');
+    if (session === backupSession) $('backup-status').textContent = navigator.onLine ? t('backup') : word('Offline · backed up on this device', '离线 · 已备份到本机');
   });
   backupQueue = task;
   task.catch(error => { if (session === backupSession) { const message = t(error.code === 'BACKUP_CONFLICT' ? 'backupConflict' : 'backupFailed'); $('backup-status').textContent = message; notice(message, true); } });
@@ -168,9 +168,7 @@ function schedulePreview() { clearTimeout(previewTimer); if (view === 'editor') 
 function renderWorkspace() {
   const editing = view === 'editor';
   $('workspace-title').textContent = t(editing ? 'body' : section === 'cv' ? 'navCV' : section === 'publications' ? 'navPublications' : section === 'blog' ? 'navBlog' : view === 'login' ? 'loginHeading' : 'homeHeading');
-  $('cv-tools').hidden = view !== 'data';
-  for (const menu of document.querySelectorAll('[data-cv-only]')) menu.hidden = section !== 'cv';
-  $('workspace-title').hidden = editing || !$('cv-tools').hidden; $('workspace-tabs').hidden = !editing;
+  $('workspace-title').hidden = editing; $('workspace-tabs').hidden = !editing;
   $('article-preview-toggle').hidden = !editing || document.body.dataset.compact !== 'true';
   tellParent({ type: 'editor-workspace', article: editing, path: originalPath || $('path').value });
   if (editing) schedulePreview();
@@ -194,8 +192,20 @@ function renderLocale() {
 
   if (busy) setBusy(true);
 }
+function libraryFiles() {
+  const result = files.filter(file => !cloudDrafts.get(file.path)?.archived);
+  for (const draft of cloudDrafts.values()) {
+    const existing = result.find(file => file.path === (draft.originalPath || draft.path));
+    if (existing) { existing.working = draft; }
+    else result.push({ path: draft.path, sha: draft.sha, type: 'blob', working: draft, cloudOnly: true });
+  }
+  return result;
+}
+function libraryCache() {
+  const result = new Map(cache); for (const draft of cloudDrafts.values()) { const file = files.find(file => file.path === (draft.originalPath || draft.path)); result.set(file?.sha || draft.sha, { text: draft.text, post: readPost(draft.text) }); } return result;
+}
 function renderLibraryFilters() {
-  const posts = files.filter(file => articleLanguage(file.path) === locale).map(file => cache.get(file.sha)?.post?.metadata || {});
+  const posts = libraryFiles().filter(file => articleLanguage(file.path) === locale).map(file => libraryCache().get(file.sha)?.post?.metadata || {});
   for (const [id, key, values] of [
     ['filter-category', 'allCategories', posts.flatMap(meta => taxonomyTerms(meta.categories))],
     ['filter-tag', 'allTags', posts.flatMap(meta => taxonomyTerms(meta.tags))],
@@ -208,10 +218,11 @@ function renderLibraryFilters() {
   }
 }
 function renderCards() {
-  const filtered = selectArticles(files, cache, { language: locale, term: $('search').value, state: $('filter-state').value,
-    category: $('filter-category').value, tag: $('filter-tag').value, year: $('filter-year').value });
+  const all = libraryFiles(), effective = libraryCache(), state = $('filter-state').value;
+  const filtered = selectArticles(all.filter(file => state === 'trash' ? file.working?.archived : !file.working?.archived), effective, { language: locale, term: $('search').value, state: ['changed', 'trash'].includes(state) ? '' : state,
+    category: $('filter-category').value, tag: $('filter-tag').value, year: $('filter-year').value }).filter(file => state !== 'changed' || file.working && file.working.text !== file.working.baseText);
   const cards = filtered.map(file => {
-    const entry = cache.get(file.sha), metadata = entry?.post?.metadata || {};
+    const entry = effective.get(file.sha), metadata = entry?.post?.metadata || {};
     const card = document.createElement('article'); card.className = 'pub-card article-card'; card.dataset.path = file.path; card.lang = locale;
     const state = articleState(file.path, metadata), date = articleDate(metadata, locale);
     const top = document.createElement('div'); top.className = 'pub-card-top';
@@ -226,7 +237,11 @@ function renderCards() {
     const footer = document.createElement('div'); footer.className = 'pub-links';
     const kind = document.createElement('span'); kind.className = 'article-kind'; kind.dataset.state = state; kind.textContent = t(state === 'draft' ? 'draftKind' : 'postKind');
     const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'blog-read-btn'; edit.textContent = `${t('editArticle')} →`; edit.addEventListener('click', () => void openArticle(file));
-    footer.append(kind, edit); card.append(top, heading, summary, footer); return card;
+    if (file.working && !file.working.archived && file.working.originalPath && file.working.text !== file.working.baseText) kind.textContent += ' · ' + word('Unpublished changes', '未发布修改');
+    const menu = document.createElement('details'); menu.className = 'article-options'; const trigger = document.createElement('summary'); trigger.textContent = '···'; trigger.setAttribute('aria-label', word('Article actions', '文章操作')); menu.append(trigger);
+    for (const [label, action] of [[word('Export', '导出'), 'export'], [word('Duplicate', '创建副本'), 'duplicate'], [file.working?.archived ? word('Restore', '恢复') : word('Delete', '删除'), file.working?.archived ? 'restore' : 'delete']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.addEventListener('click', () => void libraryAction(file, action)); menu.append(b); }
+    if (file.working?.archived) { edit.hidden = true; title.disabled = true; }
+    footer.append(kind, menu, edit); card.append(top, heading, summary, footer); return card;
   });
   if (!cards.length) {
     const empty = document.createElement('p'); empty.className = 'muted'; empty.textContent = t(listing ? 'loading' : 'noArticles'); cards.push(empty);
@@ -249,6 +264,7 @@ function scheduleLibraryRender() {
   libraryFrame = requestAnimationFrame(() => { libraryFrame = 0; renderLibraryFilters(); renderCards(); });
 }
 async function hydrate(client) {
+  try { await loadCloud(); } catch (error) { notice(error.message, true); }
   const epoch = ++hydrationEpoch, language = locale;
   const unloaded = files.filter(file => articleLanguage(file.path) === language && (!cache.has(file.sha) || cache.get(file.sha).error));
   for (let i = 0; i < unloaded.length; i += 3) {
@@ -261,12 +277,48 @@ async function hydrate(client) {
     }));
   }
 }
+async function loadCloud() {
+  if (cloudLoaded) return;
+  if (cloudTask) return cloudTask;
+  const client = api, epoch = cloudEpoch, inventory = cloudFiles;
+  const task = (async () => {
+    const next = new Map();
+    for (let i = 0; i < inventory.length; i += 3) {
+      if (epoch !== cloudEpoch || client !== api) return;
+      for (const draft of await Promise.all(inventory.slice(i, i + 3).map(file => readDraft(client, file)))) {
+        next.set(draft.originalPath || draft.path, draft); cache.set(draft.sha, { text: draft.text, post: readPost(draft.text) });
+      }
+    }
+    if (epoch !== cloudEpoch || client !== api) return;
+    cloudDrafts = next; cloudLoaded = true; renderLibraryFilters(); renderCards();
+  })();
+  cloudTask = task;
+  try { return await task; } finally { if (cloudTask === task) cloudTask = null; }
+}
+async function libraryAction(file, action) {
+  await run(async () => {
+    const draft = cloudDrafts.get(file.path), text = draft?.text || (await readArticle(api, file)).text;
+    if (action === 'export') { download(new Blob([text], { type: 'text/markdown' }), file.path.split('/').at(-1)); return; }
+    if (!await mayReplace()) return;
+    if (action === 'duplicate' || action === 'restore') {
+      const path = file.path.replace(/^(content\/blog\/(en|zh)\/)(?:drafts\/)?/, '$1drafts/').replace(/\.md$/, `-${crypto.randomUUID().slice(0, 8)}.md`);
+      const copy = updatePost(text, { draft: true, title: readPost(text).metadata.title + (action === 'duplicate' ? word(' (copy)', '（副本）') : '') });
+      await saveDraft(api, { path, baseText: copy, text: copy });
+    } else if (confirm(word('Delete this article from the website? A recoverable copy will remain in Trash.', '从网站删除此文章？可恢复的副本会保留在回收站。'))) {
+      if (file.cloudOnly) await saveDraft(api, { path: file.path, baseText: draft.baseText, text, expected: draft, archived: true });
+      else await deleteArticle(api, file, draft);
+      if (originalPath === file.path || $('path').value === file.path) { documentText = ''; dirty = false; workingDraft = null; }
+    }
+    await refresh(); await loadCloud();
+  });
+}
 async function refresh() {
   const client = api, epoch = ++libraryEpoch;
   listing = true; renderCards();
   try {
     const snapshot = await client.snapshot();
     if (client !== api || epoch !== libraryEpoch) return;
+    cloudFiles = snapshot.files.filter(file => /^\.editor\/drafts\/(en|zh)\/[a-f0-9]{64}\.json$/.test(file.path) && file.mode === '100644'); cloudLoaded = false; ++cloudEpoch; cloudTask = null;
     files = snapshot.files.filter(file => {
       try { postPath(file.path); return file.type === 'blob' && file.mode === '100644'; }
       catch { return false; }
@@ -299,6 +351,7 @@ function renderReferences(source) {
     label.append(input); properties.append(label);
     const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.textContent = t('removeEntry');
     remove.addEventListener('click', () => { if (!confirm(t('referenceDelete'))) return; model.rows.splice(index, 1); commit(); renderReferences(serializeReferences(model)); });
+    details.addEventListener('focusin', () => { selectedReference = row.text.match(/^\s*\[(\d+)\]/)?.[1] || null; });
     details.append(summary, properties, remove); root.append(details);
   });
 }
@@ -307,48 +360,12 @@ $('reference-add').addEventListener('click', () => {
   documentText = updatePost(documentText, {}, replaceArticleSection(readPost(documentText).body, 'references', serializeReferences(model), locale)); changed(); renderReferences(serializeReferences(model));
   const item = $('reference-rows').lastElementChild; item.open = true; item.querySelector('textarea').focus();
 });
-for (const button of document.querySelectorAll('[data-cv-action], [data-file-action]')) button.addEventListener('click', () => {
-  button.closest('details').open = false;
-  if (button.dataset.fileAction) $(button.dataset.fileAction).click(); else if (!busy) dataEditor.perform(button.dataset.cvAction);
-});
-for (const button of document.querySelectorAll('[data-structure-action]')) button.addEventListener('click', () => {
-  button.closest('details').open = false;
-  const action = button.dataset.structureAction;
-  if (action === 'export-all') dataEditor.export(true);
-  if (action === 'export-legacy') dataEditor.exportLegacy();
-  if (action === 'archive-legacy') dataEditor.archiveLegacy();
-  if (action === 'reset-all') dataEditor.reset(true);
-  if (action === 'save-all') void run(async () => { publishing = true; await dataEditor.publish(true); });
-});
-function positionContextMenus() {
-  for (const menu of document.querySelectorAll('#cv-tools > details[open]')) {
-    const popup = menu.querySelector('.context-menu'); popup.style.transform = '';
-    const bounds = popup.getBoundingClientRect();
-    const offset = Math.max(12 - bounds.left, Math.min(0, innerWidth - 12 - bounds.right));
-    popup.style.transform = `translateX(${offset}px)`;
-  }
-}
-for (const menu of document.querySelectorAll('#cv-tools > details')) {
-  menu.querySelector(':scope > summary').addEventListener('click', event => {
-    event.preventDefault(); const opening = !menu.open;
-    for (const other of document.querySelectorAll('#cv-tools > details')) other.open = false;
-    menu.open = opening;
-    if (opening) positionContextMenus();
-  });
-  menu.addEventListener('toggle', () => {
-    if (menu.open) {
-      for (const other of document.querySelectorAll('#cv-tools > details')) if (other !== menu) other.open = false;
-      positionContextMenus();
-    }
-  });
-}
-document.addEventListener('click', event => { if (!event.target.closest('#cv-tools')) for (const menu of document.querySelectorAll('#cv-tools > details')) menu.open = false; });
-document.addEventListener('keydown', event => { if (event.key === 'Escape') for (const menu of document.querySelectorAll('#cv-tools > details')) menu.open = false; });
 function fillFields() {
   const post = readPost(documentText), meta = post.metadata;
   const parts = articleSections(post.body);
-  fieldValue('source', parts.body); fieldValue('abstract-source', parts.abstract); renderReferences(parts.references);
+  fieldValue('source', parts.body); blockEditor.render(parts.body); fieldValue('abstract-source', parts.abstract); renderReferences(parts.references);
   $('publication-state').value = meta.draft === true ? 'draft' : 'public';
+  $('article-state-label').textContent = t(originalPath && savedState !== 'draft' ? 'postKind' : 'draftKind');
   $('title').value = typeof meta.title === 'string' ? meta.title : '';
   $('date').value = typeof meta.date === 'string' ? meta.date.slice(0, 10) : '';
   $('tags').value = tagsText(meta.tags); $('categories').value = tagsText(meta.categories);
@@ -375,7 +392,7 @@ function selectTab(next) {
   document.body.dataset.preview = 'false'; $('article-preview-toggle').setAttribute('aria-pressed', 'false');
   return true;
 }
-async function showEditor(path, text, loadedPath, sha, state, context) {
+async function showEditor(path, text, loadedPath, sha, state, context, cloud = null) {
   clearTimeout(backupTimer);
   if (documentText) {
     const flushed = await flushBackup(true);
@@ -395,9 +412,11 @@ async function showEditor(path, text, loadedPath, sha, state, context) {
       if (image?.blob) assets.push({ ...asset, blob: image.blob, persisted: true });
     }
   }
-  baseline = { text: cache.get(sha)?.text || text, path: loadedPath || path, state: state || articleState(loadedPath || path, readPost(text).metadata) };
+  workingDraft = cloud;
+  baseline = { text: cloud?.text || cache.get(sha)?.text || text, path: loadedPath || path, state: state || articleState(loadedPath || path, readPost(text).metadata) };
   const recovered = !context && existing?.dirty && existing.originalPath === loadedPath && existing.originalSha === sha && articleLanguage(existing.path) === locale ? existing : null;
-  if (recovered) { path = recovered.path; text = recovered.text; state = recovered.savedState; }
+  if (recovered) { path = recovered.path; text = recovered.text; state = recovered.savedState; workingDraft = recovered.workingDraft || null; }
+  selectedReference = null; $('draft-conflict').hidden = true;
   documentText = text; originalPath = loadedPath; originalSha = sha;
   $('path').value = path;
   try { savedState = state || articleState(loadedPath || path, readPost(text).metadata); }
@@ -405,6 +424,7 @@ async function showEditor(path, text, loadedPath, sha, state, context) {
   dirty = Boolean(recovered);
   $('backup-status').textContent = t('localOnly');
   setView('editor');
+  void loadEditorResources().then(() => { blockEditor.renderer ||= markdownRenderer(globalThis.markdownit, { renderToString: (source, options) => katex.renderToString(source, { ...options, output: 'mathml' }) }); if (view === 'editor') blockEditor.render(articleSections(readPost(documentText).body).body); }).catch(error => notice(error.message, true));
   tab = 'body';
   if (!selectTab('body')) {
     selectTab('file'); notice(t('rawInvalid'), true);
@@ -418,9 +438,11 @@ async function openArticle(file) {
   if (!await mayReplace()) return;
   await run(async () => {
     ++hydrationEpoch;
-    const entry = await readArticle(api, file);
+    await loadCloud();
+    const cloud = cloudDrafts.get(file.path);
+    const entry = file.cloudOnly ? { text: cloud.text } : await readArticle(api, file);
     cache.set(file.sha, entry);
-    await showEditor(file.path, entry.text, file.path, file.sha);
+    await showEditor(cloud?.path || file.path, cloud?.text || entry.text, cloud ? cloud.originalPath : file.path, cloud ? cloud.originalSha : file.sha, undefined, undefined, cloud);
   });
 }
 function download(blob, name) {
@@ -459,6 +481,7 @@ async function updatePreview() {
     frame.setAttribute('aria-busy', 'true'); if ($('preview-loading')) $('preview-loading').hidden = false;
     await loadPreview(frame);
     if (view !== 'editor' || !documentText || generation !== previewEpoch) return;
+    if (!blockEditor.renderer) { blockEditor.renderer = markdownRenderer(globalThis.markdownit, { renderToString: (source, options) => katex.renderToString(source, { ...options, output: 'mathml' }) }); blockEditor.render(articleSections(readPost(documentText).body).body); }
     const post = readPost(documentText), path = $('path').value.replace(/^(content\/blog\/(en|zh)\/)drafts\//, '$1');
     const base = new URL(articleURL(path, post.metadata) || '/', siteOrigin).href;
     const images = new Map(activeAssets().map(asset => [new URL(asset.url, siteOrigin).href, localImageURL(asset)]));
@@ -635,12 +658,15 @@ async function save(action, retract = false) {
       await flushBackup(true);
       const images = await Promise.all(activeAssets().filter(asset => !asset.uploaded).map(encodedImage));
       publishing = true;
-      result = await api.save({ originalPath, originalSha, path: $('path').value.trim(), text: documentText, action, images });
+      workingDraft = await saveDraft(api, { path: $('path').value.trim(), originalPath, originalSha, baseText: workingDraft?.baseText || baseline.text, text: documentText, expected: workingDraft, images });
+      documentText = workingDraft.text; originalPath = workingDraft.originalPath; originalSha = workingDraft.originalSha;
+      result = await api.save({ originalPath, originalSha, path: $('path').value.trim(), text: documentText, action, images, workingDraft });
     } catch (error) {
-      backup(); throw new Error(`${error.message}\n${t('unknownSave')}`);
+      backup(); if (error.code === 'DRAFT_CONFLICT') showDraftConflict(error); throw error;
     }
+    workingDraft = result.workingDraft; cloudLoaded = false;
     assets.forEach(asset => { if (documentText.includes(asset.url)) asset.uploaded = true; });
-    await showEditor(result.path, result.text, result.path, result.sha, undefined, { session: backupSession, assets });
+    await showEditor(result.path, result.text, result.path, result.sha, undefined, { session: backupSession, assets }, result.workingDraft);
     backupSession.touched = true;
     if (await flushBackup(true)) backupSession.touched = false;
     const post = readPost(result.text);
@@ -655,7 +681,6 @@ async function save(action, retract = false) {
   if (pending) void checkProgress();
 }
 function updateViewport() {
-  positionContextMenus();
   if (!embedded) { document.body.dataset.compact = String(innerWidth <= 800); if (dataEditor.records) dataEditor.updateSelection(); }
   const geometry = viewportGeometry(window.visualViewport, window.innerHeight);
   document.documentElement.style.setProperty('--editor-top', `${geometry.top}px`);
@@ -690,10 +715,13 @@ async function connected() {
   } else if (entry.kind === 'cv' || entry.kind === 'publications') {
     await dataEditor.open(entry.kind); section = entry.kind; setView('data', false);
   } else if (entry.path) {
-    const file = files.find(file => file.path === entry.path);
+    await loadCloud();
+    const file = libraryFiles().find(file => file.path === entry.path);
     if (!file) throw new Error(t('noArticles'));
-    const record = await readArticle(api, file);
-    await showEditor(file.path, record.text, file.path, file.sha, articleState(file.path, record.post?.metadata));
+    const cloud = cloudDrafts.get(file.path);
+    const record = file.cloudOnly ? { text: cloud.text } : await readArticle(api, file);
+    cache.set(file.sha, record);
+    await showEditor(cloud?.path || file.path, cloud?.text || record.text, cloud ? cloud.originalPath : file.path, cloud ? cloud.originalSha : file.sha, undefined, undefined, cloud);
   } else setView('library', false);
   tellParent({ type: 'editor-ready' });
   if (pending && !terminalStages.has(progressState.stage)) void checkProgress(true);
@@ -714,7 +742,7 @@ $('new-form').addEventListener('submit', async event => {
     const title = $('new-title').value.trim(); if (!title) throw new Error(t('invalidTitle'));
     const path = postPath(`content/blog/${$('language').value}/drafts/${topic}/${slug}.md`);
     await showEditor(path, newPost(title), null, null, 'draft');
-    changed(); $('source').focus();
+    changed(); $('block-editor').querySelector('button')?.focus();
   } catch (error) { notice(`${t('error')}${error.message}`, true); }
 });
 for (const button of document.querySelectorAll('[data-tab]')) button.addEventListener('click', () => selectTab(button.dataset.tab));
@@ -739,27 +767,89 @@ function syncPreviewTheme() {
 }
 window.addEventListener('editor-theme-change', syncPreviewTheme);
 $('preview-frame').addEventListener('load', syncPreviewTheme);
-for (const button of document.querySelectorAll('[data-insert]')) {
-  button.addEventListener('pointerdown', event => event.preventDefault());
-  button.addEventListener('click', () => {
-    const input = $('source'), result = insertMarkup(input.value, input.selectionStart, input.selectionEnd, button.dataset.insert);
-    input.value = result.text; input.focus(); input.setSelectionRange(result.start, result.end); input.dispatchEvent(new Event('input'));
-  });
-}
 $('insert-image').addEventListener('click', () => {
-  imageSelection = { start: $('source').selectionStart, end: $('source').selectionEnd }; $('image-input').click();
+  imageSelection = { start: $('source').value.length, end: $('source').value.length }; $('image-input').click();
 });
 $('image-input').addEventListener('change', chooseImages);
-$('article-save').addEventListener('click', () => {
-  const action = $('publication-state').value === 'draft' ? 'draft' : 'publish';
-  void save(action, action === 'draft' && savedState !== 'draft');
+async function saveWorking(all = false) {
+  await run(async () => {
+    if (!await flushBackup(true)) throw new Error(t('backupFailed'));
+    const before = workingDraft?.text || baseline.text, selected = all ? null : draftScopes(before, documentText, tab);
+    const selection = all ? null : tab === 'body' ? blockEditor.selected : tab === 'references' ? selectedReference : null;
+    const outgoing = scopedDocument(before, documentText, tab, selection, blockEditor.renderer);
+    const path = all || tab === 'file' ? $('path').value.trim() : baseline.path;
+    const images = await Promise.all(activeAssets().filter(asset => !asset.uploaded).map(encodedImage));
+    try {
+      const result = await saveDraft(api, { path, originalPath, originalSha, baseText: workingDraft?.baseText || baseline.text, text: outgoing, expected: workingDraft, selected, images });
+      const retained = retainArticle(before, documentText, result.text, selected);
+      if (selection !== null && ['body', 'references'].includes(tab)) {
+        const part = retainScopedSection(before, documentText, outgoing, result.text, tab);
+        retained.working = updatePost(retained.working, {}, replaceArticleSection(readPost(retained.working).body, tab, part.working));
+        retained.baseline = updatePost(retained.baseline, {}, replaceArticleSection(readPost(retained.baseline).body, tab, part.baseline));
+      }
+      originalPath = result.originalPath; originalSha = result.originalSha;
+      workingDraft = { ...result, text: retained.baseline }; baseline = { text: result.text, path: result.path, state: savedState }; documentText = retained.working;
+      dirty = documentText !== result.text || $('path').value !== result.path;
+      assets.forEach(asset => { if (documentText.includes(asset.url)) asset.uploaded = true; });
+      cloudDrafts.set(result.originalPath || result.path, result); fillFields(); schedulePreview(); updateImageTray();
+      backupSession.touched = true; await flushBackup(true); backupSession.touched = dirty;
+      $('backup-status').textContent = word('Saved to GitHub · unpublished', '已保存到 GitHub · 尚未发布');
+      notice();
+    } catch (error) {
+      if (error.code === 'DRAFT_CONFLICT') showDraftConflict(error);
+      throw error;
+    }
+  });
+}
+function showDraftConflict(error) {
+  const root = $('draft-conflict'); root.replaceChildren(); root.hidden = false;
+  const message = document.createElement('p'); message.textContent = word('This part changed on another device. Your edits are backed up locally.', '此部分已在另一设备修改，本机编辑已保留。'); root.append(message);
+  for (const [label, value] of [[word('Your version', '本机版本'), error.mine], [word('Cloud version', '云端版本'), error.theirs]]) { const title = document.createElement('h3'); title.textContent = label; const text = document.createElement('pre'); text.textContent = typeof value === 'string' ? value : JSON.stringify(value, null, 2); root.append(title, text); }
+  const use = document.createElement('button'); use.type = 'button'; use.textContent = word('Load cloud version', '加载云端版本');
+  use.addEventListener('click', () => void run(async () => {
+    if (!confirm(t('articleResetConfirm')) || !await flushBackup(true)) return;
+    const snapshot = await api.snapshot(), file = snapshot.files.find(file => file.path === workingDraft?.storagePath);
+    if (!file && !workingDraft) {
+      const source = snapshot.files.find(file => file.path === originalPath);
+      if (!source) throw new Error(word('Reopen this article to load the latest draft.', '请重新打开文章以加载最新草稿。'));
+      const latest = await api.read(source.sha);
+      documentText = mergeArticle(documentText, error.remoteText || latest, documentText, [error.key]); originalSha = source.sha; baseline.text = latest; fillFields(); changed(); root.hidden = true; return;
+    }
+    if (!file) throw new Error(word('Reopen this article to load the latest draft.', '请重新打开文章以加载最新草稿。'));
+    const cloud = await readDraft(api, file);
+    const target = error.remoteText || cloud.text;
+    documentText = mergeArticle(documentText, target, documentText, [error.key]); workingDraft = { ...cloud, text: target }; baseline.text = target; fillFields(); changed(); root.hidden = true;
+  })); root.append(use);
+}
+$('article-save').addEventListener('click', () => void saveWorking(false));
+$('reset-whole').addEventListener('click', async () => {
+  if (!baseline || !confirm(word('Reset the whole article to the last cloud save?', '将整篇文章重置为上次云端保存的内容？'))) return;
+  documentText = baseline.text; $('path').value = baseline.path; dirty = false; fillFields(); schedulePreview();
+  resetImageURLs(); assets = assets.filter(asset => documentText.includes(asset.url)); updateImageTray(); backupSession.touched = true; await flushBackup(true); backupSession.touched = false;
+});
+$('save-whole').addEventListener('click', () => void saveWorking(true));
+$('publish-article').addEventListener('click', () => void save('publish'));
+$('unpublish-article').addEventListener('click', () => void save('draft', true));
+$('cloud-history').addEventListener('click', () => {
+  const root = $('cloud-revisions'); root.replaceChildren();
+  for (const revision of [...(workingDraft?.history || [])].reverse()) {
+    const row = document.createElement('div'), date = document.createElement('time'), restore = document.createElement('button'); date.textContent = new Date(revision.date).toLocaleString(locale); restore.type = 'button'; restore.textContent = word('Restore', '恢复');
+    restore.addEventListener('click', async () => { if (!confirm(t('restoreConfirm'))) return; await flushBackup(true); documentText = revision.text; fillFields(); changed(); await flushBackup(true); notice(word('Restored locally. Save to sync, then publish when ready.', '已在本机恢复，保存后同步，确认后再发布。')); });
+    const preview = document.createElement('details'), label = document.createElement('summary'), text = document.createElement('pre'); label.textContent = word('Compare version', '查看版本'); text.textContent = revision.text; preview.append(label, text); row.append(date, restore, preview); root.append(row);
+  }
+  if (!root.childElementCount) root.textContent = word('No earlier cloud versions.', '暂无更早的云端版本。');
 });
 $('article-reset').addEventListener('click', async () => {
   if (!baseline || !confirm(t('articleResetConfirm'))) return;
-  documentText = baseline.text; $('path').value = baseline.path; savedState = baseline.state; dirty = false;
+  const keys = draftScopes(baseline.text, documentText, tab);
+  const selection = tab === 'body' ? blockEditor.selected : tab === 'references' ? selectedReference : null;
+  const reset = scopedDocument(documentText, baseline.text, tab, selection, blockEditor.renderer);
+  documentText = mergeArticle(documentText, reset, documentText, keys);
+  if (tab === 'file') $('path').value = baseline.path;
+  dirty = documentText !== baseline.text || $('path').value !== baseline.path;
   resetImageURLs(); assets = assets.filter(asset => documentText.includes(asset.url));
   fillFields(); updateImageTray(); schedulePreview();
-  backupSession.touched = true; backupSession.suppressed = false; await flushBackup(true); backupSession.touched = false;
+  backupSession.touched = true; backupSession.suppressed = false; await flushBackup(true); backupSession.touched = dirty;
 });
 $('article-preview-toggle').addEventListener('click', () => {
   const show = document.body.dataset.preview !== 'true'; document.body.dataset.preview = String(show);
@@ -798,6 +888,10 @@ window.addEventListener('resize', updateViewport);
 // Fonts, safe-area changes and compact header styles can resize navigation independently.
 const workspaceObserver = new ResizeObserver(updateViewport);
 workspaceObserver.observe(document.querySelector('.site-header')); workspaceObserver.observe(document.querySelector('.workspace-header'));
+for (const button of document.querySelectorAll('[data-block-add]')) button.addEventListener('click', () => { button.closest('details').open = false; if (button.dataset.blockAdd === 'image') $('image-input').click(); else blockEditor.add(button.dataset.blockAdd); });
+$('focus-writing').addEventListener('click', () => { const focus = document.body.dataset.focus !== 'true'; document.body.dataset.focus = String(focus); $('focus-writing').setAttribute('aria-pressed', String(focus)); tellParent({ type: 'editor-focus', enabled: focus }); });
+window.addEventListener('online', () => { if (dirty) notice(word('Online again. Save to sync your changes.', '网络已恢复，可保存并同步修改。')); });
+window.addEventListener('offline', () => notice(word('Offline · changes stay on this device until you save online.', '当前离线，修改保存在本机，联网后请保存同步。')));
 renderLocale(); setView('login', false);
 async function initializeLogin() {
   await run(async () => {

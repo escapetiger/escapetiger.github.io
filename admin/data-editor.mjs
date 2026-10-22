@@ -237,7 +237,7 @@ export class DataEditor {
       }
     } else {
       const choices = this.kind === 'home' && key === 'name' ? ['email', 'github', 'googlescholar'] : key === 'status' ? ['journal', 'preprint'] : key === 'type' ? ['seminar', 'workshop', 'conference'] : null;
-      const numeric = typeof value === 'number', singleLine = ['pdf', 'code', 'url', 'event_url', 'slides', 'image', 'contactURL'].includes(key);
+      const numeric = typeof value === 'number', singleLine = ['pdf', 'code', 'url', 'event_url', 'slides', 'image', 'contactURL', 'date', 'date_start', 'date_end', 'institution', 'location', 'volume', 'pages'].includes(key);
       const input = document.createElement(choices ? 'select' : typeof value === 'boolean' || numeric || singleLine ? 'input' : 'textarea');
       if (numeric) { input.type = 'number'; input.step = '1'; if (key === 'year') { input.min = '1900'; input.max = '2200'; } }
       if (singleLine) { input.type = 'text'; input.autocapitalize = 'none'; input.autocomplete = 'off'; }

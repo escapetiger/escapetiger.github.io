@@ -1,6 +1,6 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { DataEditor, parseData, dataPath, dataLabels } from './data-editor.mjs?v=27';
-import { normalizeData, clone, equal, dump, groupKeys, groupAt, entriesAt, scopeKey, unitValue, putUnit, scopesFor, changes, retainPending, saveUnits, setGroup, recoverLegacy } from './scoped-data.mjs?v=27';
+import { DataEditor, parseData, dataPath, dataLabels } from './data-editor.mjs?v=29';
+import { normalizeData, clone, equal, dump, groupKeys, groupAt, entriesAt, scopeKey, unitValue, putUnit, scopesFor, changes, retainPending, saveUnits, setGroup, recoverLegacy } from './scoped-data.mjs?v=29';
 const readStored = key => { try { return localStorage.getItem(key); } catch { return null; } };
 const key = kind => `yicai-item-backup-v2-${kind}`;
 function archive(kind, value) {
@@ -9,8 +9,8 @@ function archive(kind, value) {
   localStorage.setItem(key, value);
 }
 const words = {
-  en: { basic: 'Basic information', publication: 'Publication', deploymentFailed: 'Saved to GitHub · Deployment failed', deploymentPending: 'Saved to GitHub · Deployment not yet verified', back: 'Back', sectionTitle: 'Section title', text: 'Research interest', intro: 'Introduction', pdf: 'PDF path', add: 'Add entry', addSection: 'Add section', untitled: 'Untitled', removed: 'Pending deletion', dirty: 'Unsaved', clean: 'Saved', live: 'Website updated', local: 'Backed up on this device', saved: 'Saved to GitHub · Deploying', failed: 'Device backup failed. Export your edits before leaving.', storageConflict: 'Another tab changed the backup. Export your edits before continuing.', save: 'Save this item to GitHub?', saveAll: 'Save all changes in the current language to GitHub?', reset: 'Discard changes to this item?', resetAll: 'Discard all changes in the current language?', remove: 'Delete this entry? Save to apply the deletion.', removeSection: 'Delete this section and its entries in the current language? Save to apply the deletion.', more: 'More information', search: 'Search publications', all: 'All categories', allYears: 'All years', empty: 'No matching publications.', metadata: 'Section name', conflict: 'This item changed on GitHub. Your local edits have been kept.', remote: 'GitHub version', mine: 'Your version', useRemote: 'Use GitHub version', exportMine: 'Export your version', noItem: 'Select an item', legacy: 'An older backup needs manual review. Export it from File before making changes.', legacyExport: 'Export older backup', identity: 'Duplicate or invalid entry IDs. Export the data for review.', parent: 'This section was removed on GitHub. Your local edits have been kept.', invalid: 'Complete the required fields before saving.', newSection: 'New section' },
-  zh: { basic: '基本信息', publication: '论文信息', deploymentFailed: '已保存到 GitHub · 部署失败', deploymentPending: '已保存到 GitHub · 尚未确认上线', back: '返回', sectionTitle: '栏目标题', text: '研究方向', intro: '个人简介', pdf: 'PDF 路径', add: '新增条目', addSection: '新增栏目', untitled: '未命名', removed: '待删除', dirty: '未保存', clean: '已保存', live: '网站已更新', local: '已备份到本机', saved: '已保存到 GitHub · 部署中', failed: '本机备份失败，离开前请导出修改。', storageConflict: '另一标签页已修改备份，请先导出当前修改。', save: '将当前项保存到 GitHub？', saveAll: '将当前语言的全部修改保存到 GitHub？', reset: '放弃当前项的未保存修改？', resetAll: '放弃当前语言的全部未保存修改？', remove: '删除当前条目？保存后生效。', removeSection: '删除当前语言的此栏目及条目？保存后生效。', more: '更多信息', search: '搜索论文', all: '全部类别', allYears: '全部年份', empty: '暂无符合条件的论文。', metadata: '栏目名称', conflict: '此项已在 GitHub 上修改，本机编辑内容已保留。', remote: 'GitHub 版本', mine: '本机版本', useRemote: '采用 GitHub 版本', exportMine: '导出本机版本', noItem: '请选择一项', legacy: '旧版备份需要人工核对，请先从文件菜单导出后再编辑。', legacyExport: '导出旧版备份', identity: '条目标识重复或无效，请导出数据核对。', parent: '此栏目已从 GitHub 删除，本机编辑内容已保留。', invalid: '请填写完整的必填信息后再保存。', newSection: '新栏目' }
+  en: { basic: 'Basic information', publication: 'Publication', deploymentFailed: 'Saved to GitHub · Deployment failed', deploymentPending: 'Saved to GitHub · Deployment not yet verified', back: 'Back', sectionTitle: 'Section title', text: 'Research interest', intro: 'Introduction', pdf: 'PDF path', add: 'Add entry', addSection: 'Add section', untitled: 'Untitled', removed: 'Pending deletion', dirty: 'Unsaved', clean: 'Saved', live: 'Website updated', local: 'Backed up on this device', saved: 'Saved to GitHub · Deploying', failed: 'Device backup failed. Export your edits before leaving.', storageConflict: 'Another tab changed the backup. Export your edits before continuing.', save: 'Save this item to GitHub?', saveAll: 'Save all changes in the current language to GitHub?', reset: 'Discard changes to this item?', resetAll: 'Discard all changes in the current language?', remove: 'Delete this entry? Save to apply the deletion.', removeSection: 'Delete this section and its entries in the current language? Save to apply the deletion.', more: 'More information', search: 'Search publications', all: 'All categories', allYears: 'All years', empty: 'No matching publications.', metadata: 'Section name', conflict: 'This item changed on GitHub. Your local edits have been kept.', remote: 'GitHub version', mine: 'Your version', useRemote: 'Use GitHub version', exportMine: 'Export your version', noItem: 'Select an item', legacy: 'An older backup needs manual review. Export it before making changes.', legacyExport: 'Export older backup', identity: 'Duplicate or invalid entry IDs. Export the data for review.', parent: 'This section was removed on GitHub. Your local edits have been kept.', invalid: 'Complete the required fields before saving.', newSection: 'New section' },
+  zh: { basic: '基本信息', publication: '论文信息', deploymentFailed: '已保存到 GitHub · 部署失败', deploymentPending: '已保存到 GitHub · 尚未确认上线', back: '返回', sectionTitle: '栏目标题', text: '研究方向', intro: '个人简介', pdf: 'PDF 路径', add: '新增条目', addSection: '新增栏目', untitled: '未命名', removed: '待删除', dirty: '未保存', clean: '已保存', live: '网站已更新', local: '已备份到本机', saved: '已保存到 GitHub · 部署中', failed: '本机备份失败，离开前请导出修改。', storageConflict: '另一标签页已修改备份，请先导出当前修改。', save: '将当前项保存到 GitHub？', saveAll: '将当前语言的全部修改保存到 GitHub？', reset: '放弃当前项的未保存修改？', resetAll: '放弃当前语言的全部未保存修改？', remove: '删除当前条目？保存后生效。', removeSection: '删除当前语言的此栏目及条目？保存后生效。', more: '更多信息', search: '搜索论文', all: '全部类别', allYears: '全部年份', empty: '暂无符合条件的论文。', metadata: '栏目名称', conflict: '此项已在 GitHub 上修改，本机编辑内容已保留。', remote: 'GitHub 版本', mine: '本机版本', useRemote: '采用 GitHub 版本', exportMine: '导出本机版本', noItem: '请选择一项', legacy: '旧版备份需要人工核对，请先导出后再编辑。', legacyExport: '导出旧版备份', identity: '条目标识重复或无效，请导出数据核对。', parent: '此栏目已从 GitHub 删除，本机编辑内容已保留。', invalid: '请填写完整的必填信息后再保存。', newSection: '新栏目' }
 };
 function node(tag, className, text) { const element = document.createElement(tag); if (className) element.className = className; if (text !== undefined) element.textContent = text; return element; }
 function button(text, action, className = 'quiet') { const element = node('button', className, text); element.type = 'button'; element.addEventListener('click', action); return element; }
@@ -18,7 +18,7 @@ const titleOf = value => typeof value === 'string' ? value : value?.title || val
 const newId = () => `item_${crypto.randomUUID().replaceAll('-', '')}`;
 export class StructuredEditor extends DataEditor {
   constructor(options) {
-    super(options);
+    super(options); this.saveRequested = options.saveRequested;
     this.root.addEventListener?.('focusin', event => {
       const item = event.target.closest('[data-unit]');
       if (item) this.activate(JSON.parse(item.dataset.unit));
@@ -109,13 +109,13 @@ export class StructuredEditor extends DataEditor {
   markRows() {
     const pending = new Set(this.differences().map(scopeKey));
     for (const row of this.root.querySelectorAll('[data-unit]')) {
-      const scope = JSON.parse(row.dataset.unit), dirty = pending.has(scopeKey(scope));
+      const scope = JSON.parse(row.dataset.unit), dirty = pending.has(scopeKey(scope)) || row.classList.contains('unit-card') && scope.type === 'section' && this.differences().some(item => item.group === scope.group);
       if (scope.type === 'entry') { const value = unitValue(this.kind, this.active.value, scope); if (value) row.querySelector('.unit-title').textContent = titleOf(value) || this.text('untitled'); }
       row.toggleAttribute('data-dirty', dirty); const state = row.querySelector('.unit-marker');
       if (state) {
         const removed = unitValue(this.kind, this.active.value, scope) === undefined; state.textContent = removed ? this.text('removed') : dirty ? '•' : ''; state.title = removed ? this.text('removed') : dirty ? this.text('dirty') : '';
         const trigger = row.querySelector(':scope > .unit-row');
-        if (trigger && !row.classList.contains('cv-edit-section')) trigger.setAttribute('aria-label', `${row.querySelector('.unit-title').textContent} ${row.querySelector('.unit-meta').textContent} ${state.title}`.trim());
+        if (trigger) trigger.setAttribute('aria-label', `${row.querySelector('.unit-title').textContent} ${row.querySelector('.unit-meta').textContent} ${state.title}`.trim());
       }
     }
   }
@@ -126,71 +126,57 @@ export class StructuredEditor extends DataEditor {
     this.selectionChanged({ section, entry: this.scope?.type === 'entry' && unitValue(this.kind, this.active?.value, this.scope) !== undefined, selected: !!this.scope, dirty: this.currentDirty(), detail: false, legacy: !!this.legacyBackup, legacyBlocked: !!this.legacyBlocked });
   }
   select(scope) {
-    this.scope = scope; this.group = scope.group || (this.kind === 'cv' ? 'basic' : ''); this.conflict = null; this.render();
-    const item = this.findUnit(scope);
-    for (let parent = item; parent; parent = parent.parentElement) if (parent.tagName === 'DETAILS') parent.open = true;
-    item?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    (item?.querySelector(':scope > summary > input') || item?.querySelector('.unit-form input, .unit-form textarea, .unit-form select'))?.focus();
+    this.scope = scope; this.group = scope?.group || (this.kind === 'cv' ? 'basic' : ''); this.conflict = null; this.render();
+    window.scrollTo?.({ top: 0, behavior: 'smooth' });
   }
-  row(root, scope, title, subtitle = '', number = 1) {
-    const item = node('details', 'data-entry unit-item'); item.dataset.unit = scopeKey(scope); item.dataset.group = scope.id;
-    item.open = this.expanded.has(scopeKey(scope)) || scopeKey(scope) === scopeKey(this.scope);
-    const summary = node('summary', 'unit-row');
-    summary.append(node('span', 'data-entry-number', String(number).padStart(2, '0')), node('span', 'data-entry-title unit-title', title || this.text('untitled')), node('span', 'data-entry-meta unit-meta', subtitle), node('span', 'unit-marker'));
-    item.append(summary); root.append(item); this.form(item, scope, title || this.text('untitled'));
-  }
-  researchRow(root, scope, item, number) {
-    const row = node('div', 'data-entry unit-item unit-research'); row.dataset.unit = scopeKey(scope); row.dataset.group = scope.id;
-    row.append(node('span', 'unit-title sr-only', titleOf(item)), node('span', 'unit-meta sr-only'), node('span', 'unit-marker'));
-    root.append(row); this.form(row, scope, this.text('text'));
-    row.querySelector('textarea')?.setAttribute('aria-label', `${this.text('text')} ${number}`);
-  }
-  section(root, group) {
-    const scope = { type: 'section', group }, value = groupAt(this.active.value, group), original = groupAt(this.active.base, group);
-    const section = node('details', 'data-section cv-edit-section unit-section'); section.dataset.group = group; section.dataset.unit = scopeKey(scope); section.toggleAttribute('data-deleted', !value);
-    section.open = this.expanded.has(scopeKey(scope)) || this.scope?.group === group;
-    const summary = node('summary', 'unit-row'), title = node('span', 'unit-title', (value || original).title), marker = node('span', 'unit-marker');
-    summary.append(title, node('span', 'unit-meta'), marker);
-    if (value) {
-      const input = node('input'); input.type = 'text'; input.value = value.title; input.dataset.field = 'title'; input.setAttribute('aria-label', this.text('sectionTitle'));
-      input.addEventListener('click', event => event.stopPropagation());
-      input.addEventListener('input', () => { value.title = input.value; title.textContent = input.value; this.changed(); }); summary.append(input);
-    }
-    section.append(summary); root.append(section);
-    if (!value) { section.append(node('p', 'unit-deleted', this.text('removed'))); return; }
-    const entries = node('div', 'section-entries'); section.append(entries);
-    const union = new Map([...(entriesAt(this.kind, this.active.base, group) || []), ...(entriesAt(this.kind, this.active.value, group) || [])].map(item => [item._id, item]));
-    [...union.values()].forEach((item, index) => {
-      const entryScope = { type: 'entry', group, id: item._id };
-      if (group === 'research') this.researchRow(entries, entryScope, item, index + 1);
-      else this.row(entries, entryScope, titleOf(item), [item.date || item.date_start, item.institution || item.location].filter(Boolean).join(' · '), index + 1);
-    });
+  card(root, scope, title, subtitle = '') {
+    const card = button('', () => this.select(scope), 'unit-card pub-card'); card.dataset.unit = scopeKey(scope);
+    card.append(node('h2', 'unit-title', title || this.text('untitled')), node('span', 'unit-meta', subtitle), node('span', 'unit-marker'), node('span', 'unit-arrow', '→'));
+    root.append(card);
   }
   render() {
     if (!this.records) return;
-    const lang = this.locale(), sameLanguage = this.renderedLang === lang;
-    this.expanded = new Set(sameLanguage ? [...this.root.querySelectorAll('details[open][data-unit]')].map(item => item.dataset.unit) : []);
-    if (this.renderedLang && !sameLanguage) { this.scope = null; this.conflict = null; this.group = this.kind === 'cv' ? 'basic' : ''; this.query = ''; }
-    if (this.scope && unitValue(this.kind, this.active.base, this.scope) === undefined && unitValue(this.kind, this.active.value, this.scope) === undefined) this.scope = null;
-    if (!this.scope) this.group = this.kind === 'cv' ? 'basic' : '';
-    this.renderedLang = lang; this.root.replaceChildren(); this.root.className = 'structured-editor inline-data-editor';
-    if (this.legacyBlocked) { const warning = node('p', 'unit-legacy', this.text('legacy')); warning.setAttribute('role', 'alert'); this.root.append(warning); }
-    if (this.kind === 'publications') {
-      const toolbar = node('div', 'unit-toolbar'), input = node('input'); input.type = 'search'; input.id = 'data-search'; input.value = this.query || ''; input.placeholder = this.text('search'); input.setAttribute('aria-label', this.text('search'));
-      input.addEventListener('input', () => { this.query = input.value; this.filterRows(); }); toolbar.append(input); this.root.append(toolbar);
+    const lang = this.locale();
+    if (this.renderedLang && this.renderedLang !== lang) { this.scope = null; this.conflict = null; this.group = 'basic'; this.query = ''; }
+    this.renderedLang = lang; this.root.replaceChildren(); this.root.className = 'structured-editor card-data-editor';
+    const zh = lang === 'zh', scope = this.scope;
+    if (this.legacyBlocked) {
+      this.root.append(node('p', 'unit-legacy', this.text('legacy')), button(this.text('legacyExport'), () => this.exportLegacy()), button(zh ? '归档旧备份' : 'Archive older backup', () => this.archiveLegacy()));
     }
-    const list = node('div', 'unit-list'); this.root.append(list);
-    if (this.kind === 'cv') {
-      for (const name of ['intro', 'pdf']) {
-        const item = node('section', 'unit-basic'); item.dataset.unit = scopeKey({ type: 'field', key: name }); list.append(item); this.form(item, { type: 'field', key: name }, this.text(name));
+    const toolbar = node('div', 'card-toolbar'); this.root.append(toolbar);
+    const list = node('div', 'unit-list card-list'); this.root.append(list);
+    if (!scope) {
+      toolbar.append(button(this.text(this.kind === 'cv' ? 'addSection' : 'add'), () => this.perform(this.kind === 'cv' ? 'add-section' : 'add-entry')));
+      const more = node('details', 'card-options'), summary = node('summary', '', '···'); summary.setAttribute('aria-label', zh ? '全部操作' : 'All actions'); more.append(summary);
+      more.append(button(zh ? '导出全部' : 'Export all', () => this.export(true)), button(zh ? '重置全部' : 'Reset all', () => this.reset(true)), button(zh ? '保存全部' : 'Save all', () => this.saveRequested ? this.saveRequested(true) : this.publish(true).catch(() => {}))); toolbar.append(more);
+      if (this.kind === 'cv') {
+        for (const name of ['intro', 'pdf']) this.card(list, { type: 'field', key: name }, this.text(name));
+        for (const group of new Set([...groupKeys(this.active.base), ...groupKeys(this.active.value)])) {
+          const value = groupAt(this.active.value, group) || groupAt(this.active.base, group);
+          this.card(list, { type: 'section', group }, value.title, String((entriesAt(this.kind, this.active.value, group) || []).length));
+        }
+      } else {
+        const input = node('input'); input.type = 'search'; input.id = 'data-search'; input.value = this.query || ''; input.placeholder = this.text('search'); input.setAttribute('aria-label', this.text('search'));
+        input.addEventListener('input', () => { this.query = input.value; this.filterRows(); }); toolbar.prepend(input);
+        const union = new Map([...this.active.base, ...this.active.value].map(item => [item._id, item]));
+        for (const item of union.values()) this.card(list, { type: 'entry', id: item._id }, titleOf(item), [item.year, item.status === 'journal' ? (zh ? '期刊' : 'Journal') : (zh ? '预印本' : 'Preprint'), item.authors, item.publisher].filter(Boolean).join(' · '));
       }
-      for (const group of new Set([...groupKeys(this.active.base), ...groupKeys(this.active.value)])) this.section(list, group);
     } else {
-      const union = new Map([...this.active.base, ...this.active.value].map(item => [item._id, item]));
-      [...union.values()].forEach((item, index) => this.row(list, { type: 'entry', id: item._id }, titleOf(item), [item.year, item.status === 'journal' ? (lang === 'zh' ? '期刊' : 'Journal') : (lang === 'zh' ? '预印本' : 'Preprint')].filter(Boolean).join(' · '), index + 1));
+      toolbar.append(button('← ' + this.text('back'), () => this.select(scope.type === 'entry' && this.kind === 'cv' ? { type: 'section', group: scope.group } : null)));
+      const target = node('section', 'unit-detail'); target.dataset.unit = scopeKey(scope); list.append(target);
+      const value = unitValue(this.kind, this.active.value, scope), original = unitValue(this.kind, this.active.base, scope);
+      const title = scope.type === 'field' ? this.text(scope.key) : titleOf(value || original);
+      target.append(node('h2', 'unit-title', title || this.text('untitled')), node('span', 'unit-meta'), node('span', 'unit-marker'));
+      this.form(target, scope, title);
+      if (scope.type === 'section' && groupAt(this.active.value, scope.group)) {
+        toolbar.append(button(this.text('add'), () => this.perform('add-entry')), button(zh ? '删除栏目' : 'Delete section', () => this.perform('delete-section'), 'quiet danger'));
+        const entries = node('div', 'section-entries card-list'); target.append(entries);
+        const union = new Map([...(entriesAt(this.kind, this.active.base, scope.group) || []), ...(entriesAt(this.kind, this.active.value, scope.group) || [])].map(item => [item._id, item]));
+        for (const item of union.values()) this.card(entries, { type: 'entry', group: scope.group, id: item._id }, titleOf(item), item.date || item.date_start || item.location || '');
+      } else if (scope.type === 'entry' && value) toolbar.append(button(zh ? '删除条目' : 'Delete entry', () => this.perform('remove-entry'), 'quiet danger'));
     }
-    this.markRows(); this.filterRows(); this.updateSelection(); this.backup();
-    this.setStatus(this.scope ? this.text(this.currentDirty() ? 'dirty' : 'clean') : '');
+    this.markRows(); if (!scope) this.filterRows(); this.updateSelection(); this.backup();
+    this.setStatus(scope ? this.text(this.currentDirty() ? 'dirty' : 'clean') : '');
     if (this.conflict) this.renderConflict();
   }
   filterRows() {
@@ -201,7 +187,7 @@ export class StructuredEditor extends DataEditor {
       row.hidden = !selected && (!!this.query && ![item.title, item.authors, item.publisher, item.year].join(' ').toLocaleLowerCase().includes(this.query.trim().toLocaleLowerCase()));
     }
     this.root.querySelector('.unit-empty')?.remove();
-    if (![...this.root.querySelectorAll('.unit-item')].some(row => !row.hidden)) this.root.querySelector('.unit-list').append(node('p', 'unit-empty', this.text('empty')));
+    if (![...this.root.querySelectorAll('.unit-card')].some(row => !row.hidden)) this.root.querySelector('.unit-list').append(node('p', 'unit-empty', this.text('empty')));
   }
   form(root, scope, title) {
     const form = node('div', 'unit-form'); form.setAttribute('aria-label', title); root.append(form);
@@ -211,7 +197,7 @@ export class StructuredEditor extends DataEditor {
     if (scope.type === 'field') {
       const label = node('label'); label.append(node('span', '', this.text(scope.key)), node('span', 'unit-marker')); this.fields(label, value, [scope.key], this.active.value, scope.key); properties.append(label);
     } else {
-      const defaults = this.kind === 'publications' ? { title: '', authors: '', status: 'preprint', year: new Date().getFullYear(), publisher: '', volume: '', pages: '', pdf: '', code: '', url: '' } : scope.group === 'research' ? {} : scope.group === 'talks' ? { title: '', type: 'seminar', event_url: '', location: '', date_start: '', date_end: '', slides: '' } : { title: '', date: '', institution: '', detail: '', location: '' };
+      const defaults = scope.type === 'section' ? {} : this.kind === 'publications' ? { title: '', authors: '', status: 'preprint', year: new Date().getFullYear(), publisher: '', volume: '', pages: '', pdf: '', code: '', url: '' } : scope.group === 'research' ? {} : scope.group === 'talks' ? { title: '', type: 'seminar', event_url: '', location: '', date_start: '', date_end: '', slides: '' } : { title: '', date: '', institution: '', detail: '', location: '' };
       const exposed = Object.fromEntries(Object.entries({ ...defaults, ...value }).filter(([key]) => key !== '_id' && !(scope.type === 'section' && ['items', 'entries'].includes(key))));
       for (const [name, item] of Object.entries(exposed)) {
         if (item && typeof item === 'object') continue;

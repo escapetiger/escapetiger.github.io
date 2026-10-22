@@ -39,9 +39,9 @@ function frameReady(frame) {
   task.catch(() => frames.delete(frame));
   return task;
 }
+export async function loadEditorResources() {
+  await Promise.all([script('vendor/markdown-it.min.js', 'markdownit'), script('vendor/purify.min.js', 'DOMPurify'), script('vendor/katex/katex.min.js', 'katex')]);
+}
 export async function loadPreview(frame) {
-  await Promise.all([
-    script('vendor/markdown-it.min.js', 'markdownit'), script('vendor/purify.min.js', 'DOMPurify'),
-    script('vendor/katex/katex.min.js', 'katex'), frameReady(frame)
-  ]);
+  await Promise.all([loadEditorResources(), frameReady(frame)]);
 }

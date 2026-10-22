@@ -1,5 +1,5 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { postPath } from './core.mjs?v=11';
+import { postPath } from './core.mjs?v=29';
 export const LEGACY_BACKUP_KEY = 'yicai-blog-editor-backup-v1';
 export function backupRecord(input) {
   postPath(input.path);
@@ -12,6 +12,7 @@ export function backupRecord(input) {
     return { path: asset.path, url: '/' + asset.path.slice(7), name: String(asset.name || asset.path.split('/').at(-1)), uploaded: Boolean(asset.uploaded) };
   });
   return { id: input.id, path: input.path, text: input.text, originalPath, originalSha,
+    workingDraft: input.workingDraft || null,
     savedState: ['draft', 'public', 'scheduled'].includes(input.savedState) ? input.savedState : input.path.split('/')[3] === 'drafts' ? 'draft' : 'public', dirty: Boolean(input.dirty), assets };
 }
 export function nextBackup(input, previous, expectedRevision, checkpoint = false, now = Date.now()) {

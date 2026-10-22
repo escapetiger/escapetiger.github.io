@@ -1,8 +1,8 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 export const messages = {
-  zh: {
+  zh: { unpublishedChanges: '未发布修改', trash: '回收站', addBlock: '新增内容块', blockParagraph: '段落', blockHeading: '标题', blockQuote: '引用', blockList: '列表', blockCode: '代码', blockFormula: '公式', blockImage: '图片', focusWriting: '专注', saveArticle: '保存整篇', resetArticle: '重置整篇', publishUpdate: '发布 / 更新', unpublish: '取消发布', cloudHistory: '云端历史',
     fileTab: '文件', abstractTab: '摘要', referencesTab: '参考文献', settingsTab: '设置', draftKind: '草稿', postKind: '推文',
-    articleResetConfirm: '放弃当前文章的未保存修改，恢复上次保存的内容？',
+    articleResetConfirm: '放弃当前选中部分的未保存修改？',
     abstractPlaceholder: '填写摘要，作为博客卡片的简介。', referencesPlaceholder: '## 参考文献\n\n[1] ',
     sectionExport: '导出', sectionReset: '重置', sectionSave: '保存',
     editAvatar: '修改头像', editName: '修改姓名', editMotto: '修改座右铭', editLinks: '修改链接', exportHome: '导出', publishHome: '发布首页',
@@ -69,9 +69,9 @@ export const messages = {
     localOnly: '编辑自动备份到本机；点击发布后才会更新公开文章。',
     articlesUnit: '篇文章', emptyTitle: '未命名文章'
   },
-  en: {
+  en: { unpublishedChanges: 'Unpublished changes', trash: 'Trash', addBlock: 'Add block', blockParagraph: 'Paragraph', blockHeading: 'Heading', blockQuote: 'Quote', blockList: 'List', blockCode: 'Code', blockFormula: 'Formula', blockImage: 'Image', focusWriting: 'Focus', saveArticle: 'Save article', resetArticle: 'Reset article', publishUpdate: 'Publish / Update', unpublish: 'Unpublish', cloudHistory: 'Cloud history',
     fileTab: 'File', abstractTab: 'Abstract', referencesTab: 'References', settingsTab: 'Settings', draftKind: 'Draft', postKind: 'Post',
-    articleResetConfirm: 'Discard unsaved changes and restore the last saved article?',
+    articleResetConfirm: 'Discard unsaved changes in the selected part?',
     abstractPlaceholder: 'Write the abstract shown in the blog card.', referencesPlaceholder: '## References\n\n[1] ',
     sectionExport: 'Export', sectionReset: 'Reset', sectionSave: 'Save',
     editAvatar: 'Edit avatar', editName: 'Edit name', editMotto: 'Edit motto', editLinks: 'Edit links', exportHome: 'Export', publishHome: 'Publish home',

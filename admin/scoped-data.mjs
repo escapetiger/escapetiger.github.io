@@ -1,5 +1,5 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { parseData, dataPath } from './data-editor.mjs?v=27';
+import { parseData, dataPath } from './data-editor.mjs?v=29';
 export const cvSections = ['research', 'appointments', 'education', 'visiting', 'service', 'talks', 'posters', 'teaching'];
 export const clone = value => value === undefined ? undefined : structuredClone(value);
 const canonical = value => value === undefined ? 'undefined' : JSON.stringify(value, (_key, item) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);

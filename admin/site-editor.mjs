@@ -1,5 +1,5 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { pagePath } from '/admin/routes.mjs?v=18';
+import { pagePath } from '/admin/routes.mjs?v=29';
 const menu = document.querySelector('.site-mode-toggle');
 const host = document.querySelector('meta[name="editor-origin"]')?.content;
 if (menu && host) {
@@ -173,6 +173,7 @@ if (menu && host) {
   window.addEventListener('message', event => {
     if (event.origin !== origin || event.source !== frame?.contentWindow) return;
     const message = event.data;
+    if (message?.type === 'editor-focus') document.body.dataset.editorFocus = String(message.enabled === true);
     if (message?.type === 'editor-workspace') {
       if (message.article === true && articlePath !== message.path) {
         articlePath = message.path; lastArticle = null;
