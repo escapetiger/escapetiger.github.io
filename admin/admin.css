@@ -261,8 +261,8 @@ body[data-view=editor][data-embedded=true] .editor-shell { top: var(--workspace-
 body[data-preview=true] .editor-content > [data-panel] { display: none; }
 body[data-preview=true] #preview-panel { display: flex; }
 .editor-footer { background: var(--bg); padding: 8px 14px max(8px, env(safe-area-inset-bottom)); }
-.editor-footer .actions { justify-content: space-between; gap: 4px; }
-.editor-footer .actions button { min-width: 0; padding-inline: 8px; }
+.editor-footer .actions, #data-view > .data-actions { justify-content: space-between; gap: 4px; flex-wrap: nowrap; }
+.editor-footer .actions button, #data-view > .data-actions button { flex: 1; min-width: 0; padding-inline: 8px; }
 #backup-status.sr-only { margin: 0; min-height: 0; }
 .file-actions { display: flex; justify-content: space-between; gap: 8px; }
 .file-actions button { padding: 0 4px; }
@@ -298,6 +298,9 @@ body[data-embedded=true] .data-actions { bottom: 0; margin-top: 16px; padding: 8
 body[data-view=data] main, body[data-view=home] main { padding-bottom: 90px; }
 body[data-embedded=true][data-view=data] .data-actions,
 body[data-embedded=true][data-view=home] .data-actions { position: fixed; left: 18px; right: 18px; bottom: 0; margin: 0; }
+/* Match the article footer's full-width, equally sized touch targets. */
+#data-view > .data-actions { padding: 8px 14px max(8px, env(safe-area-inset-bottom)); }
+body[data-embedded=true][data-view=data] #data-view > .data-actions { left: 0; right: 0; }
 .data-fields :is(input, select, textarea) { font-size: 15px; line-height: 1.7; }
 .workspace-header .editor-tabs button:hover { background: transparent; }
 .cv-edit-section > summary { display: flex; align-items: center; gap: 8px; list-style: none; line-height: 1.5; min-height: 52px; }
