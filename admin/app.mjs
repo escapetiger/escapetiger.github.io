@@ -1,19 +1,20 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
-import { articleSections, replaceArticleSection } from './article-sections.mjs?v=24';
+import { referenceRows, serializeReferences, addReference } from './references.mjs?v=25';
+import { articleSections, replaceArticleSection } from './article-sections.mjs?v=25';
 import { newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=24';
+import { messages } from './messages.mjs?v=25';
 import { BackupStore } from './backups.mjs?v=11';
 import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';
 import { renderPreview } from './preview.mjs?v=6';
 import { RepositoryCache } from './read-cache.mjs?v=9';
-import { loadPreview } from './preview-loader.mjs?v=24';
+import { loadPreview } from './preview-loader.mjs?v=25';
 import { authConfiguration, authRequest, SessionGitHub, siteOrigin } from './auth.mjs?v=11';
 import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate, articleSummary, selectArticles } from './library.mjs?v=11';
 import { entryFrom, pagePath } from './routes.mjs?v=18';
 
-import { DataEditor, dataPath } from './data-editor.mjs?v=24';
+import { DataEditor, dataPath } from './data-editor.mjs?v=25';
 
 const parameters = new URL(location.href).searchParams;
 const embedded = parameters.get('embedded') === '1' && window.parent !== window;
@@ -43,7 +44,12 @@ function sectionPublished(result) {
   previewHome();
   savePending(); progressState = { stage: 'queued' }; renderProgress(); setView('result'); void checkProgress();
 }
-const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); }, published: sectionPublished });
+const dataEditor = new DataEditor({ root: $('data-content'), locale: () => locale, api: () => api, notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); }, published: sectionPublished, selectionChanged(context) {
+  for (const button of document.querySelectorAll('[data-cv-action]')) {
+    const action = button.dataset.cvAction;
+    button.disabled = busy || action === 'remove-entry' && !context.entry || ['add-entry', 'delete-section'].includes(action) && !context.section;
+  }
+} });
 const homeEditor = new DataEditor({ root: $('home-fields'), locale: () => locale, api: () => api,
   notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); previewHome(); }, published: sectionPublished });
 function previewHome() {
@@ -115,9 +121,10 @@ function setBusy(value) {
   $('editor-home').setAttribute('aria-disabled', String(value));
   // Keep export available even when a network request is pending.
   document.querySelectorAll('button, input, select, textarea').forEach(node => {
-    if (!['export', 'data-export', 'home-export', 'locale', 'theme-toggle'].includes(node.id)) node.disabled = value;
+    if (!['export', 'data-export', 'home-export', 'locale', 'theme-toggle'].includes(node.id) && node.dataset.fileAction !== 'data-export') node.disabled = value;
   });
   document.querySelectorAll('.view').forEach(node => node.setAttribute('aria-busy', String(value && !node.hidden)));
+  if (!value && dataEditor.records) dataEditor.updateSelection();
 }
 async function mayReplace() { return !dirty || await flushBackup(true) || confirm(t('discard')); }
 function activeAssets() { return assets.filter(asset => documentText.includes(asset.url)); }
@@ -149,7 +156,8 @@ function schedulePreview() { clearTimeout(previewTimer); if (view === 'editor') 
 function renderWorkspace() {
   const editing = view === 'editor';
   $('workspace-title').textContent = t(editing ? 'body' : section === 'cv' ? 'navCV' : section === 'publications' ? 'navPublications' : section === 'blog' ? 'navBlog' : view === 'login' ? 'loginHeading' : 'homeHeading');
-  $('workspace-title').hidden = editing; $('workspace-tabs').hidden = !editing;
+  $('cv-tools').hidden = !(view === 'data' && section === 'cv');
+  $('workspace-title').hidden = editing || !$('cv-tools').hidden; $('workspace-tabs').hidden = !editing;
   $('article-preview-toggle').hidden = !editing || document.body.dataset.compact !== 'true';
   tellParent({ type: 'editor-workspace', article: editing, path: originalPath || $('path').value });
   if (editing) schedulePreview();
@@ -165,7 +173,7 @@ function renderLocale() {
   $('theme-toggle').title = t('toggleTheme');
   $('preview-frame').title = t('preview');
   previewHome();
-  $('abstract-source').placeholder = t('abstractPlaceholder'); $('references-source').placeholder = t('referencesPlaceholder');
+  $('abstract-source').placeholder = t('abstractPlaceholder');
   renderWorkspace();
   if (view === 'backups') void showBackups();
   if (view === 'data') dataEditor.render();
@@ -258,15 +266,51 @@ function articleDetails(metadata) {
   return [articleDate(metadata, locale)?.label, ...taxonomyTerms(metadata.categories), ...taxonomyTerms(metadata.tags).map(tag => `#${tag}`)].filter(Boolean).join(' · ');
 }
 function fieldValue(id, value) { if ($(id).value !== value) $(id).value = value; }
+const referenceTitle = text => articleSummary({ body: text.replace(/^\s*\[\d+\]\s*/, '') }) || '…';
+function renderReferences(source) {
+  const model = referenceRows(source), root = $('reference-rows');
+  const expanded = new Set([...root.querySelectorAll('details[open]')].map(node => node.dataset.index));
+  root.replaceChildren();
+  const commit = () => {
+    documentText = updatePost(documentText, {}, replaceArticleSection(readPost(documentText).body, 'references', serializeReferences(model), locale)); changed();
+  };
+  model.rows.forEach((row, index) => {
+    const details = document.createElement('details'); details.className = 'data-entry'; details.dataset.index = String(index); details.open = expanded.has(String(index));
+    const summary = document.createElement('summary'), number = document.createElement('span'), title = document.createElement('span');
+    number.className = 'data-entry-number'; number.textContent = row.text.match(/^\s*\[(\d+)\]/)?.[1] || String(index + 1).padStart(2, '0');
+    title.className = 'data-entry-title'; title.textContent = referenceTitle(row.text); summary.append(number, title);
+    const properties = document.createElement('div'); properties.className = 'data-properties';
+    const label = document.createElement('label'); label.dataset.property = 'title'; label.textContent = t('citation');
+    const input = document.createElement('textarea'); input.rows = 5; input.value = row.text; input.setAttribute('aria-label', `${t('citation')} ${number.textContent}`);
+    input.addEventListener('input', () => { row.text = input.value; title.textContent = referenceTitle(input.value); commit(); });
+    label.append(input); properties.append(label);
+    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.textContent = t('removeEntry');
+    remove.addEventListener('click', () => { if (!confirm(t('referenceDelete'))) return; model.rows.splice(index, 1); commit(); renderReferences(serializeReferences(model)); });
+    details.append(summary, properties, remove); root.append(details);
+  });
+}
+$('reference-add').addEventListener('click', () => {
+  const model = referenceRows(articleSections(readPost(documentText).body).references); addReference(model, locale);
+  documentText = updatePost(documentText, {}, replaceArticleSection(readPost(documentText).body, 'references', serializeReferences(model), locale)); changed(); renderReferences(serializeReferences(model));
+  const item = $('reference-rows').lastElementChild; item.open = true; item.querySelector('textarea').focus();
+});
+for (const button of document.querySelectorAll('[data-cv-action], [data-file-action]')) button.addEventListener('click', () => {
+  button.closest('details').open = false;
+  if (button.dataset.fileAction) $(button.dataset.fileAction).click(); else dataEditor.perform(button.dataset.cvAction);
+});
+for (const menu of document.querySelectorAll('#cv-tools > details')) menu.addEventListener('toggle', () => {
+  if (menu.open) for (const other of document.querySelectorAll('#cv-tools > details')) if (other !== menu) other.open = false;
+});
+document.addEventListener('click', event => { if (!event.target.closest('#cv-tools')) for (const menu of document.querySelectorAll('#cv-tools > details')) menu.open = false; });
+document.addEventListener('keydown', event => { if (event.key === 'Escape') for (const menu of document.querySelectorAll('#cv-tools > details')) menu.open = false; });
 function fillFields() {
   const post = readPost(documentText), meta = post.metadata;
   const parts = articleSections(post.body);
-  fieldValue('source', parts.body); fieldValue('abstract-source', parts.abstract); fieldValue('references-source', parts.references);
+  fieldValue('source', parts.body); fieldValue('abstract-source', parts.abstract); renderReferences(parts.references);
   $('publication-state').value = meta.draft === true ? 'draft' : 'public';
   $('title').value = typeof meta.title === 'string' ? meta.title : '';
   $('date').value = typeof meta.date === 'string' ? meta.date.slice(0, 10) : '';
   $('tags').value = tagsText(meta.tags); $('categories').value = tagsText(meta.categories);
-  fieldValue('raw-source', documentText);
   renderWorkspace();
 }
 function syncInformation() {
@@ -280,11 +324,9 @@ function syncInformation() {
   documentText = updatePost(documentText, values);
 }
 function selectTab(next) {
-  if (!['file', 'abstract', 'body', 'references', 'settings'].includes(next)) return false;
-  if (next !== 'file') {
-    try { fillFields(); }
-    catch (error) { notice(`${t('rawInvalid')}\n${error.message}`, true); return false; }
-  } else fieldValue('raw-source', documentText);
+  if (!['file', 'abstract', 'body', 'references'].includes(next)) return false;
+  try { fillFields(); }
+  catch (error) { notice(`${t('rawInvalid')}\n${error.message}`, true); if (next !== 'file') return false; }
   tab = next;
   document.querySelectorAll('[data-tab]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.tab === next)));
   document.querySelectorAll('[data-panel]').forEach(node => { node.hidden = node.dataset.panel !== next; });
@@ -535,7 +577,7 @@ async function checkProgress(manual = false) {
 async function save(action, retract = false) {
   if (busy) return;
   try {
-    if (tab === 'settings') syncInformation();
+    if (tab === 'file') syncInformation();
     const post = readPost(documentText);
     if (typeof post.metadata.title !== 'string' || !post.metadata.title.trim()) throw new Error(t('invalidTitle'));
     postPath($('path').value.trim());
@@ -638,7 +680,6 @@ for (const id of ['title', 'date', 'tags', 'categories']) $(id).addEventListener
     changed(); renderWorkspace();
   } catch (error) { notice(`${t('error')}${error.message}`, true); }
 });
-$('raw-source').addEventListener('input', () => { documentText = $('raw-source').value; changed(); renderWorkspace(); });
 $('path').addEventListener('input', changed);
 $('back').addEventListener('click', async () => { await flushBackup(true); setView('library'); });
 $('editor-backups').addEventListener('click', showBackups);
@@ -680,7 +721,7 @@ $('publication-state').addEventListener('change', () => {
   try { documentText = updatePost(documentText, { draft: $('publication-state').value === 'draft' }); changed(); }
   catch (error) { notice(`${t('error')}${error.message}`, true); }
 });
-for (const name of ['abstract', 'references']) $(`${name}-source`).addEventListener('input', () => {
+for (const name of ['abstract']) $(`${name}-source`).addEventListener('input', () => {
   try { documentText = updatePost(documentText, {}, replaceArticleSection(readPost(documentText).body, name, $(`${name}-source`).value, locale)); changed(); }
   catch (error) { notice(`${t('error')}${error.message}`, true); }
 });

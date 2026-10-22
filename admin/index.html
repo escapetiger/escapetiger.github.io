@@ -17,11 +17,11 @@
   <script src="ink-click.js?v=14" defer></script>
   <link id="editor-fonts" rel="stylesheet" href="vendor/wenkai/font.css" media="print">
   <link rel="stylesheet" href="site.css?v=6">
-  <link rel="stylesheet" href="admin.css?v=24">
-  <link rel="stylesheet" href="blog-cards.css?v=24">
+  <link rel="stylesheet" href="admin.css?v=25">
+  <link rel="stylesheet" href="blog-cards.css?v=25">
   <script src="vendor/js-yaml.min.js" defer></script>
   <link rel="stylesheet" href="scrollbars.css?v=22">
-  <script src="app.mjs?v=24" type="module"></script>
+  <script src="app.mjs?v=25" type="module"></script>
 </head>
 <body data-view="login">
   <header class="site-header">
@@ -47,12 +47,23 @@
   </header>
   <header class="workspace-header">
     <h1 id="workspace-title"></h1>
+    <nav id="cv-tools" class="context-tools" aria-label="CV" hidden>
+      <details><summary data-i18n="fileTab"></summary><div class="context-menu">
+        <button type="button" data-file-action="data-export" data-i18n="sectionExport"></button><button type="button" data-file-action="data-reload" data-i18n="sectionReset"></button><button type="button" data-file-action="data-publish" data-i18n="sectionSave"></button>
+      </div></details>
+      <details><summary data-i18n="sectionMenu"></summary><div class="context-menu">
+        <button type="button" data-cv-action="add-section" data-i18n="addSection"></button><button type="button" data-cv-action="delete-section" data-i18n="deleteSection" disabled></button>
+      </div></details>
+      <details><summary data-i18n="entryMenu"></summary><div class="context-menu">
+        <button type="button" data-cv-action="add-entry" data-i18n="addEntry" disabled></button><button type="button" data-cv-action="remove-entry" data-i18n="removeEntry" disabled></button>
+      </div></details>
+    </nav>
+
     <nav id="workspace-tabs" class="editor-tabs" aria-label="Editor" hidden>
       <button type="button" data-tab="file" aria-pressed="false" data-i18n="fileTab"></button>
       <button type="button" data-tab="abstract" aria-pressed="false" data-i18n="abstractTab"></button>
       <button type="button" data-tab="body" aria-pressed="true" data-i18n="body"></button>
       <button type="button" data-tab="references" aria-pressed="false" data-i18n="referencesTab"></button>
-      <button type="button" data-tab="settings" aria-pressed="false" data-i18n="settingsTab"></button>
     </nav>
     <button id="article-preview-toggle" class="quiet preview-toggle" type="button" aria-pressed="false" data-i18n="preview"></button>
   </header>
@@ -114,27 +125,22 @@
           <label class="sr-only" for="source" data-i18n="body"></label>
           <textarea id="source" spellcheck="false" autocapitalize="none" autocomplete="off" autocorrect="off"></textarea>
         </div>
-        <div id="preview-panel" class="preview-panel"><p id="preview-loading" class="hint preview-hint" role="status" data-i18n="previewLoading" hidden></p><iframe id="preview-frame" title="Article preview" sandbox="allow-same-origin" data-src="preview.html?v=24"></iframe></div>
-        <div id="settings-panel" class="form-panel" data-panel="settings" hidden>
+        <div id="preview-panel" class="preview-panel"><p id="preview-loading" class="hint preview-hint" role="status" data-i18n="previewLoading" hidden></p><iframe id="preview-frame" title="Article preview" sandbox="allow-same-origin" data-src="preview.html?v=25"></iframe></div>
+        <div id="abstract-panel" class="form-panel prose-panel" data-panel="abstract" hidden>
+          <label class="sr-only" for="abstract-source" data-i18n="abstractTab"></label>
+          <textarea id="abstract-source" spellcheck="false" autocapitalize="none" autocorrect="off"></textarea>
+        </div>
+        <div id="references-panel" class="form-panel" data-panel="references" hidden>
+          <div id="reference-rows" class="data-fields"></div><div class="reference-actions"><button type="button" id="reference-add" data-i18n="addEntry"></button></div>
+        </div>
+        <div id="file-panel" class="form-panel" data-panel="file" hidden>
+          <div class="file-actions"><button type="button" id="back" class="quiet" data-i18n="navBlog"></button><button type="button" id="editor-backups" class="quiet" data-i18n="history"></button></div>
+          <label for="path" data-i18n="path"></label><input id="path" autocapitalize="none" spellcheck="false">
           <label for="publication-state" data-i18n="statusFilter"></label><select id="publication-state"><option value="draft" data-i18n="draftKind"></option><option value="public" data-i18n="postKind"></option></select>
           <label for="title" data-i18n="title"></label><input id="title" required>
           <label for="date" data-i18n="date"></label><input id="date" type="date">
           <label for="tags" data-i18n="tags"></label><input id="tags">
           <label for="categories" data-i18n="categories"></label><input id="categories">
-        </div>
-        <div id="abstract-panel" class="form-panel prose-panel" data-panel="abstract" hidden>
-          <label class="sr-only" for="abstract-source" data-i18n="abstractTab"></label>
-          <textarea id="abstract-source" spellcheck="false" autocapitalize="none" autocorrect="off"></textarea>
-        </div>
-        <div id="references-panel" class="form-panel prose-panel" data-panel="references" hidden>
-          <label class="sr-only" for="references-source" data-i18n="referencesTab"></label>
-          <textarea id="references-source" spellcheck="false" autocapitalize="none" autocorrect="off"></textarea>
-        </div>
-        <div id="file-panel" class="form-panel" data-panel="file" hidden>
-          <div class="file-actions"><button type="button" id="back" class="quiet" data-i18n="navBlog"></button><button type="button" id="editor-backups" class="quiet" data-i18n="history"></button></div>
-          <label for="path" data-i18n="path"></label><input id="path" autocapitalize="none" spellcheck="false">
-          <label for="raw-source" data-i18n="raw"></label>
-          <textarea id="raw-source" rows="18" spellcheck="false" autocapitalize="none" autocomplete="off" autocorrect="off"></textarea>
         </div>
       </div>
       <footer class="editor-footer"><p id="backup-status" class="sr-only" role="status"></p><div class="actions"><button id="export" type="button" data-i18n="sectionExport"></button><button id="article-reset" type="button" data-i18n="sectionReset"></button><button id="article-save" type="button" class="primary" data-i18n="sectionSave"></button></div></footer>

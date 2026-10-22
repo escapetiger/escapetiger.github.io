@@ -186,7 +186,7 @@ if (menu && host) {
         articlePreview = document.createElement('iframe'); articlePreview.id = 'site-article-preview';
         articlePreview.title = zh ? '文章实时预览' : 'Live article preview'; articlePreview.setAttribute('sandbox', 'allow-same-origin');
         articlePreview.setAttribute('aria-busy', 'true');
-        articlePreview.src = '/admin/preview.html?v=24';
+        articlePreview.src = '/admin/preview.html?v=25';
         articlePreview.addEventListener('load', renderArticlePreview);
         document.querySelector('.main').append(articlePreview);
       }

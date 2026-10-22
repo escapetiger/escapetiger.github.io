@@ -52,7 +52,7 @@ export const messages = {
     error: '操作失败：', invalidBackup: '备份格式无效，请使用导出的 Markdown。',
     unknownSave: '内容仍保留在编辑器中。若网络中断，请先检查 GitHub 是否已收到提交，再决定是否重试。',
     invalidTitle: '请填写文章标题。', invalidSlug: '请使用主题目录和文件名，不要包含 drafts/ 或 .md 后缀。',
-    rawInvalid: '文章信息无法解析，请在“文件”中修正 YAML 后再切换。',
+    rawInvalid: '文章信息无法解析，请先导出备份，再重置或从历史中恢复。',
     newReady: '新草稿', progress: '发布进度', resultHeading: '发布进度', submitted: '源码已保存', buildStep: '构建网站', liveStep: '更新线上网站',
     queued: '等待自动构建',
     building: '正在构建网站',
@@ -121,7 +121,7 @@ export const messages = {
     error: 'Operation failed: ', invalidBackup: 'Invalid backup. Use an exported Markdown file.',
     unknownSave: 'Your content is still in the editor. If the network failed, check whether GitHub received the commit before retrying.',
     invalidTitle: 'Enter an article title.', invalidSlug: 'Use a topic and filename without a drafts/ prefix or .md suffix.',
-    rawInvalid: 'Fix the YAML in File before switching tabs.',
+    rawInvalid: 'Article metadata cannot be read. Export a backup, then reset or restore from history.',
     newReady: 'New draft', progress: 'Publication status', resultHeading: 'Publication status', submitted: 'Source saved', buildStep: 'Build website', liveStep: 'Update live website',
     queued: 'Waiting for a build',
     building: 'Building your website',
@@ -139,3 +139,6 @@ export const messages = {
     articlesUnit: 'articles', emptyTitle: 'Untitled article'
   }
 };
+
+Object.assign(messages.en, { sectionMenu: 'Section', entryMenu: 'Entry', addSection: 'Add section', deleteSection: 'Delete section', addEntry: 'Add entry', removeEntry: 'Remove entry', citation: 'Citation', referenceDelete: 'Remove this reference? Existing citation numbers in the article will stay unchanged.' });
+Object.assign(messages.zh, { sectionMenu: '栏目', entryMenu: '条目', addSection: '新增栏目', deleteSection: '删除栏目', addEntry: '新增条目', removeEntry: '删除条目', citation: '文献信息', referenceDelete: '删除此参考文献？正文中的引用编号将保持不变。' });

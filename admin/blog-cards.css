@@ -16,12 +16,11 @@ html:root :is(.blog-view, .article-grid) .pub-badge { display: inline-block; pad
 :is(.blog-view, .article-grid) .note-summary > :first-child { margin-top: 0; }
 :is(.blog-view, .article-grid) .note-summary > :last-child { margin-bottom: 0; }
 :is(.blog-view, .article-grid) .pub-links { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 14px; padding: 0; border: 0; }
-:is(.blog-view, .article-grid) .blog-read-btn { display: inline-flex; align-items: center; gap: 6px; height: auto; min-height: 44px; padding: 0 4px; border: 0; background: transparent; color: var(--ink-accent); font: 700 14px/1.5 var(--font-ui); box-shadow: none; text-decoration: none; }
-:is(.blog-view, .article-grid) .blog-read-btn:hover { background: transparent; color: var(--ink-accent); box-shadow: none; text-decoration: underline; text-underline-offset: 4px; }
-:is(.blog-view, .article-grid) .blog-read-btn-text { padding-left: 4px; font-size: 14px; color: var(--ink-accent); }
-:is(.blog-view, .article-grid) .blog-read-btn-book-body,
-:is(.blog-view, .article-grid) .blog-read-btn-book-page { color: var(--ink-accent); }
-:is(.blog-view, .article-grid) .blog-read-btn:is(:hover, :focus-visible) :is(.blog-read-btn-text, .blog-read-btn-book-body, .blog-read-btn-book-page) { color: var(--ink-accent); }
+:is(.blog-view, .article-grid) .blog-read-btn { display: inline-flex; align-items: center; height: 36px; min-height: 36px; padding: 0 14px 0 10px; border: 1.5px solid var(--border); border-radius: 3px; background: transparent; color: var(--primary); font: 600 14px/1.5 var(--font-ui); text-decoration: none; transition: background .18s, box-shadow .18s; }
+:is(.blog-view, .article-grid) .blog-read-btn:hover { background: var(--primary); color: var(--theme); box-shadow: 0 2px 8px var(--border); text-decoration: none; }
+:is(.blog-view, .article-grid) .blog-read-btn-text { padding-left: 8px; color: var(--primary); }
+:is(.blog-view, .article-grid) .blog-read-btn:is(:hover, :focus-visible) :is(.blog-read-btn-text, .blog-read-btn-book-body, .blog-read-btn-book-page) { color: var(--theme); }
+:is(.blog-view, .article-grid) .blog-read-btn:focus-visible { background: var(--primary); color: var(--theme); }
 .article-kind { margin-right: auto; color: var(--secondary); font-size: 12px; font-weight: 600; letter-spacing: .04em; }
 .article-kind[data-state=draft] { color: var(--ink-accent); }
 @media (max-width: 600px) {

@@ -305,3 +305,22 @@ body[data-embedded=true][data-view=home] .data-actions { position: fixed; left: 
 .cv-edit-section > summary::after { content: '+'; margin-left: auto; color: var(--muted); font-size: 16px; font-weight: 400; }
 .cv-edit-section[open] > summary::after { content: '−'; }
 .cv-edit-section > summary input { flex: 1; min-width: 0; }
+
+/* Context menus keep structural actions beside the selected CV data. */
+.context-tools { position: relative; display: flex; align-items: center; gap: 22px; min-width: 0; flex: 1; }
+.context-tools > details { position: static; }
+.context-tools summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 700; }
+.context-tools summary::-webkit-details-marker { display: none; }
+.context-tools details[open] > summary { color: var(--accent); }
+.context-menu { position: absolute; top: 100%; right: 0; min-width: 160px; max-width: calc(100vw - 32px); padding: 6px; background: var(--bg); border-radius: var(--radius); box-shadow: var(--ink-shadow); }
+
+.context-menu button { display: block; width: 100%; text-align: right; white-space: nowrap; }
+.context-menu button:disabled { opacity: .35; cursor: default; background: transparent; }
+.cv-edit-section[data-selected] > summary, .cv-edit-section .data-entry[data-selected] { background: var(--ink-wash); color: var(--accent); border-radius: var(--radius); }
+.cv-edit-section .data-entry[data-selected] .data-entry-number { color: var(--accent); }
+.reference-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+#references-panel { overflow-wrap: anywhere; }
+#reference-rows .data-entry > summary { grid-template-columns: 30px minmax(0, 1fr) 14px; }
+#reference-rows .data-entry-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#reference-rows textarea { min-height: 150px; }
+@media (max-width: 359px) { .context-tools { gap: 18px; } .context-tools summary { font-size: 13px; } }

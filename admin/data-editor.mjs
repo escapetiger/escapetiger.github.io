@@ -40,7 +40,7 @@ export function parseData(kind, text, incomplete = false) {
     if (!object(value) || typeof value.intro !== 'string' || typeof value.pdf !== 'string') throw new Error('CV needs intro and pdf fields.');
     const custom = value.custom_sections ?? {};
     if (!object(custom) || Object.keys(custom).some(key => !/^section_[a-z0-9_]+$/.test(key))) throw new Error('Invalid custom CV sections.');
-    for (const key of [...sections, ...Object.keys(custom)]) {
+    for (const key of [...sections.filter(key => Object.hasOwn(value, key)), ...Object.keys(custom)]) {
       const section = sections.includes(key) ? value[key] : custom[key];
       if (!object(section) || typeof section.title !== 'string' || (!incomplete && !section.title.trim()) || !Array.isArray(section[key === 'research' ? 'items' : 'entries'])) throw new Error(`Invalid CV section: ${key}`);
       for (const entry of section[key === 'research' ? 'items' : 'entries']) {
@@ -79,11 +79,12 @@ const blankPublication = () => ({ title: '', status: 'preprint', authors: '', pu
 const blankEntry = key => key === 'research' ? '' : key === 'talks' ? { title: '', type: 'seminar', event_url: '', location: '', date_start: '', date_end: '', slides: '' } : { title: '', date: '', institution: '', detail: '', location: '' };
 const draftKey = kind => `yicai-section-backup-v1-${kind}`;
 export class DataEditor {
-  constructor({ root, locale, api, notify, published }) {
-    Object.assign(this, { root, locale, api, notify, published }); this.records = null; this.dirty = false; this.backupVersion = null; this.sessions = new Map();
+  constructor({ root, locale, api, notify, published, selectionChanged = () => {} }) {
+    Object.assign(this, { root, locale, api, notify, published, selectionChanged }); this.records = null; this.dirty = false; this.backupVersion = null; this.sessions = new Map();
   }
   text(key) { const zh = this.locale() === 'zh'; return ({ add: zh ? '新增条目' : 'Add entry', addSection: zh ? '新增栏目' : 'Add section', sectionTitle: zh ? '栏目标题' : 'Section title', removeSection: zh ? '删除栏目' : 'Remove section', deleteSection: zh ? '删除此栏目及其中英文条目？' : 'Remove this section and its entries in both languages?', remove: zh ? '删除此条目' : 'Remove entry', saved: zh ? '已备份 · 未发布' : 'Backed up · Unpublished', failed: zh ? '设备备份失败，请导出后再离开。' : 'Device backup failed. Export before leaving.', restore: zh ? '发现此设备上的未发布修改，是否恢复？' : 'Restore unpublished edits from this device?', publish: zh ? '发布此部分的中英文修改？' : 'Publish both language versions of this section?', reload: zh ? '重新载入会放弃此部分的未发布修改，继续？' : 'Discard unpublished changes in this section and reload?', delete: zh ? '删除当前语言的此条目？请同时检查另一语言。' : 'Remove this entry from the current language? Check the other language too.' })[key]; }
   async open(kind, reload = false) {
+    if (reload || kind !== this.kind) this.selection = null;
     if (this.kind && this.records) this.sessions.set(this.kind, { records: this.records, dirty: this.dirty, backupVersion: this.backupVersion });
     const client = this.api(), saved = this.sessions.get(kind), inventory = client.latestSnapshot;
     const current = saved && (!inventory || ['en', 'zh'].every(lang =>
@@ -134,6 +135,7 @@ export class DataEditor {
     if (!this.records) return;
     const lang = this.locale(), record = this.records[lang], zh = lang === 'zh';
     const expanded = new Set(this.renderedLang === lang ? [...this.root.querySelectorAll('details[open][data-group]')].map(node => node.dataset.group) : []);
+    if (this.renderedLang !== lang) this.selection = null;
     this.renderedLang = lang;
     this.root.replaceChildren();
     this.root.setAttribute('aria-label', this.kind === 'cv' ? (zh ? '简历' : 'CV') : this.kind === 'home' ? (zh ? '首页' : 'Home') : (zh ? '论文' : 'Publications'));
@@ -145,6 +147,7 @@ export class DataEditor {
       const item = [...this.root.querySelectorAll('[data-group]')].find(node => node.dataset.group === this.revealPath);
       item?.querySelector('textarea, select, input')?.focus(); this.revealPath = undefined;
     }
+    this.updateSelection();
     if (this.dirty) this.backup();
   }
   addSection() {
@@ -155,17 +158,17 @@ export class DataEditor {
       record.value.custom_sections[key] = { title: lang === 'zh' ? '新栏目' : 'New section', entries: [] };
       record.text = globalThis.jsyaml.dump(record.value, { lineWidth: 100, noRefs: true, schema: globalThis.jsyaml.JSON_SCHEMA });
     }
+    this.selection = { section: `custom_sections.${key}`, entry: null };
     this.revealPath = `custom_sections.${key}`; this.dirty = true; this.backup(); this.render();
   }
   cvFields(root, value) {
     for (const key of ['intro', 'pdf']) {
       const wrapper = document.createElement('label'); wrapper.textContent = labels[this.locale()][key];
-      this.fields(wrapper, value[key], [key], value, key); root.append(wrapper);
+      this.fields(wrapper, value[key], [key], value, key);
+      for (const type of ['focusin', 'click']) wrapper.addEventListener(type, () => { this.selection = null; this.updateSelection(); }); root.append(wrapper);
     }
-    for (const key of sections) this.cvSection(root, value[key], [key]);
+    for (const key of sections) if (value[key]) this.cvSection(root, value[key], [key]);
     for (const [key, section] of Object.entries(value.custom_sections || {})) this.cvSection(root, section, ['custom_sections', key]);
-    const add = document.createElement('button'); add.type = 'button'; add.dataset.addSection = ''; add.textContent = this.text('addSection');
-    add.addEventListener('click', () => this.addSection()); root.append(add);
   }
   cvSection(root, section, path) {
     const group = document.createElement('details'); group.className = 'data-section cv-edit-section'; group.dataset.group = path.join('.');
@@ -175,17 +178,13 @@ export class DataEditor {
     summary.append(title, input); group.append(summary);
     const key = path[0] === 'research' ? 'items' : 'entries';
     this.fields(group, section[key], [...path, key], section, key);
-    if (path[0] === 'custom_sections') {
-      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.dataset.removeSection = ''; remove.textContent = this.text('removeSection');
-      remove.addEventListener('click', () => {
-        if (!confirm(this.text('deleteSection'))) return;
-        for (const lang of ['en', 'zh']) {
-          const record = this.records[lang]; delete record.value.custom_sections?.[path[1]];
-          record.text = globalThis.jsyaml.dump(record.value, { lineWidth: 100, noRefs: true, schema: globalThis.jsyaml.JSON_SCHEMA });
-        }
-        this.dirty = true; this.backup(); this.render();
-      }); group.append(remove);
-    }
+    const select = event => {
+      if (event.type === 'click' && event.target.closest('input, textarea, select')) return;
+      const entry = event.target.closest('.data-entry');
+      this.selection = { section: path.join('.'), entry: entry?.dataset.group ?? null };
+      this.updateSelection();
+    };
+    group.addEventListener('click', select); group.addEventListener('focusin', select);
     root.append(group);
   }
   fields(root, value, path, parent, key) {
@@ -202,9 +201,13 @@ export class DataEditor {
         }
         const properties = document.createElement('div'); properties.className = 'data-properties';
         this.fields(properties, entry, [...path, index], value, index); details.append(properties);
-        const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.textContent = this.text('remove');
-        remove.onclick = () => { if (confirm(this.text('delete'))) { value.splice(index, 1); this.changed(); this.render(); } }; details.append(remove); root.append(details);
+        if (this.kind !== 'cv') {
+          const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'quiet danger'; remove.textContent = this.text('remove');
+          remove.onclick = () => { if (confirm(this.text('delete'))) { value.splice(index, 1); this.changed(); this.render(); } }; details.append(remove);
+        }
+        root.append(details);
       });
+      if (this.kind === 'cv') return;
       const add = document.createElement('button'); add.type = 'button'; add.textContent = this.text('add');
       add.onclick = () => {
         for (const language of ['en', 'zh']) {
@@ -248,6 +251,49 @@ export class DataEditor {
           parent.status ? (parent.status === 'journal' ? (lang === 'zh' ? '期刊' : 'Journal') : (lang === 'zh' ? '预印本' : 'Preprint')) : parent.institution || parent.location].filter(Boolean).join(' · ');
       }); root.append(input);
     }
+  }
+  selected() {
+    if (this.kind !== 'cv' || !this.records || this.renderedLang !== this.locale()) return {};
+    const path = this.selection?.section?.split('.') || [];
+    let section = this.records[this.locale()].value;
+    for (const key of path) section = section?.[key];
+    if (!path.length || !section) return {};
+    const key = path[0] === 'research' ? 'items' : 'entries';
+    const list = section[key];
+    const prefix = `${path.join('.')}.${key}.`, entry = this.selection.entry;
+    const index = entry?.startsWith(prefix) && /^\d+$/.test(entry.slice(prefix.length)) ? Number(entry.slice(prefix.length)) : -1;
+    return { path, section, key, list, index: index >= 0 && index < list.length ? index : -1 };
+  }
+  updateSelection() {
+    const selected = this.selected();
+    for (const node of this.root.querySelectorAll('[data-group]')) node.toggleAttribute('data-selected', node.dataset.group === this.selection?.entry || node.dataset.group === this.selection?.section && !this.selection?.entry);
+    this.selectionChanged({ section: !!selected.section, entry: selected.index >= 0 });
+  }
+  perform(action) {
+    if (this.kind !== 'cv' || !this.records) return;
+    if (action === 'add-section') { this.addSection(); return; }
+    const { path, section, key, list, index } = this.selected();
+    if (!section) return;
+    if (action === 'delete-section') {
+      if (!confirm(this.text('deleteSection'))) return;
+      for (const lang of ['en', 'zh']) {
+        const value = this.records[lang].value;
+        if (path.length === 1) delete value[path[0]];
+        else delete value.custom_sections?.[path[1]];
+        this.records[lang].text = globalThis.jsyaml.dump(value, { lineWidth: 100, noRefs: true, schema: globalThis.jsyaml.JSON_SCHEMA });
+      }
+      this.selection = null; this.dirty = true; this.backup(); this.render(); return;
+    }
+    if (action === 'add-entry') {
+      // Entries belong to the current language; never create unpublished blank translations.
+      list.push(blankEntry(path[0]));
+      this.revealPath = `${path.join('.')}.${key}.${list.length - 1}`;
+      this.selection.entry = this.revealPath;
+    } else if (action === 'remove-entry' && index >= 0) {
+      if (!confirm(this.text('delete'))) return;
+      list.splice(index, 1); this.selection.entry = null;
+    } else return;
+    this.changed(); this.render();
   }
   export() {
     if (!this.records) return;
