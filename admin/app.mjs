@@ -1,7 +1,7 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 import { newPost, postPath, readPost, updatePost, articleState, articleURL } from './core.mjs?v=11';
 import { deploymentStatus, viewportGeometry } from './deployment.mjs?v=7';
-import { messages } from './messages.mjs?v=18';
+import { messages } from './messages.mjs?v=19';
 import { BackupStore } from './backups.mjs?v=11';
 import { drawBackups } from './backup-ui.mjs?v=11';
 import { prepareImage, encodedImage, insertMarkup, MAX_IMAGES, MAX_TOTAL_BYTES } from './media.mjs?v=9';

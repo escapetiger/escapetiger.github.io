@@ -1,6 +1,7 @@
 // Copyright (C) 2026, Yi Cai. All rights reserved. See LICENSE for details.
 export const messages = {
   zh: {
+    sectionExport: '导出', sectionReset: '重置', sectionSave: '保存',
     editAvatar: '修改头像', editName: '修改姓名', editMotto: '修改座右铭', editLinks: '修改链接', exportHome: '导出', publishHome: '发布首页',
     homeHeading: '编辑主页',
     localEdits: '有本机修改', viewPublishedSite: '查看正式网站',
@@ -66,6 +67,7 @@ export const messages = {
     articlesUnit: '篇文章', emptyTitle: '未命名文章'
   },
   en: {
+    sectionExport: 'Export', sectionReset: 'Reset', sectionSave: 'Save',
     editAvatar: 'Edit avatar', editName: 'Edit name', editMotto: 'Edit motto', editLinks: 'Edit links', exportHome: 'Export', publishHome: 'Publish home',
     homeHeading: 'Editor home',
     localEdits: 'Local edits', viewPublishedSite: 'View published site',
