@@ -3,6 +3,7 @@ import { pagePath } from '/admin/routes.mjs?v=18';
 const menu = document.querySelector('.site-mode-toggle');
 const host = document.querySelector('meta[name="editor-origin"]')?.content;
 if (menu && host) {
+  if (!('registerProperty' in CSS)) document.documentElement.classList.add('scroll-motion-fallback');
   const origin = new URL(host).origin, local = location.origin === origin;
   const { browseLabel, editLabel, editUrl, hideEditorLabel, showEditorLabel } = menu.dataset;
   const page = pagePath(location.pathname), zh = document.documentElement.lang.startsWith('zh');
@@ -85,7 +86,10 @@ if (menu && host) {
     } else {
       panel.dataset.open = 'false';
       if (matchMedia('(prefers-reduced-motion: reduce)').matches) panel.hidden = true;
-      else hidePanelTimer = setTimeout(() => { if (!active || collapsed) panel.hidden = true; }, 500);
+      else {
+        const duration = Math.max(...getComputedStyle(panel).transitionDuration.split(',').map(value => parseFloat(value) * (value.trim().endsWith('ms') ? 1 : 1000)));
+        hidePanelTimer = setTimeout(() => { if (!active || collapsed) panel.hidden = true; }, duration + 40);
+      }
     }
   }
   function drawMode() {
