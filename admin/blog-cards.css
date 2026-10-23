@@ -29,3 +29,16 @@ html:root :is(.blog-view, .article-grid) .pub-badge { display: inline-block; pad
   :is(.blog-view, .article-grid) .pub-year { margin-left: auto; }
   :is(.blog-view, .article-grid) .pub-title { font-size: 19px; }
 }
+
+/* The inventory uses the published Read button's ink inversion with a writing gesture. */
+.article-grid .blog-edit-pencil { width: 18px; height: 18px; flex: none; transform-origin: 25% 85%; }
+@media (hover: hover) and (pointer: fine) {
+  .article-grid .blog-read-btn:hover .blog-edit-pencil { animation: blog-edit-writing .65s ease-in-out infinite; }
+}
+.article-grid .blog-read-btn:focus-visible .blog-edit-pencil { animation: blog-edit-writing .65s ease-in-out 2; }
+@keyframes blog-edit-writing {
+  0%, 100% { transform: rotate(0deg) translate(0, 0); }
+  35% { transform: rotate(-10deg) translate(-1px, 1px); }
+  70% { transform: rotate(5deg) translate(1px, -1px); }
+}
+@media (prefers-reduced-motion: reduce) { .article-grid .blog-read-btn .blog-edit-pencil { animation: none !important; } }

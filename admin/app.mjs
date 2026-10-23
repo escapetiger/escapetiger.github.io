@@ -19,7 +19,7 @@ import { preferredLocale, localeKey, articleLanguage, taxonomyTerms, articleDate
 import { entryFrom, pagePath } from './routes.mjs?v=29';
 
 import { DataEditor, dataPath } from './data-editor.mjs?v=29';
-import { StructuredEditor } from './structured-editor.mjs?v=29';
+import { StructuredEditor } from './structured-editor.mjs?v=30';
 
 const parameters = new URL(location.href).searchParams;
 const embedded = parameters.get('embedded') === '1' && window.parent !== window;
@@ -53,7 +53,7 @@ function sectionPublished(result, keepView = false) {
   previewHome();
   savePending(); progressState = { stage: 'queued' }; renderProgress(); if (!keepView) setView('result'); void checkProgress();
 }
-const dataEditor = new StructuredEditor({ saveRequested: all => void run(async () => { publishing = true; await dataEditor.publish(all); }), root: $('data-content'), locale: () => locale, api: () => api,
+const dataEditor = new StructuredEditor({ root: $('data-content'), locale: () => locale, api: () => api,
   notify(message, error) { safeToLeave = false; if (error || !embedded) notice(message, error); }, published: result => sectionPublished(result, true), selectionChanged(context) {
     $('data-export').disabled = !context.selected;
     $('data-reload').disabled = busy || !context.dirty;
@@ -236,7 +236,9 @@ function renderCards() {
     const summary = document.createElement('div'); summary.className = 'pub-venue note-summary'; summary.textContent = articleSummary(entry?.post); summary.hidden = !summary.textContent;
     const footer = document.createElement('div'); footer.className = 'pub-links';
     const kind = document.createElement('span'); kind.className = 'article-kind'; kind.dataset.state = state; kind.textContent = t(state === 'draft' ? 'draftKind' : 'postKind');
-    const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'blog-read-btn'; edit.textContent = `${t('editArticle')} →`; edit.addEventListener('click', () => void openArticle(file));
+    const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'blog-read-btn'; const pencil = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); pencil.classList.add('blog-edit-pencil'); pencil.setAttribute('viewBox', '0 0 24 24'); pencil.setAttribute('fill', 'none'); pencil.setAttribute('stroke', 'currentColor'); pencil.setAttribute('stroke-width', '1.8'); pencil.setAttribute('stroke-linecap', 'round'); pencil.setAttribute('stroke-linejoin', 'round'); pencil.setAttribute('aria-hidden', 'true');
+    const stroke = document.createElementNS(pencil.namespaceURI, 'path'); stroke.setAttribute('d', 'M16 3a2.12 2.12 0 0 1 3 3L8 17l-4 1 1-4L16 3Zm-2 2 3 3M4 21h16'); pencil.append(stroke);
+    const editLabel = document.createElement('span'); editLabel.className = 'blog-read-btn-text'; editLabel.textContent = t('editArticle'); edit.append(pencil, editLabel); edit.addEventListener('click', () => void openArticle(file));
     if (file.working && !file.working.archived && file.working.originalPath && file.working.text !== file.working.baseText) kind.textContent += ' · ' + word('Unpublished changes', '未发布修改');
     const menu = document.createElement('details'); menu.className = 'article-options'; const trigger = document.createElement('summary'); trigger.textContent = '···'; trigger.setAttribute('aria-label', word('Article actions', '文章操作')); menu.append(trigger);
     for (const [label, action] of [[word('Export', '导出'), 'export'], [word('Duplicate', '创建副本'), 'duplicate'], [file.working?.archived ? word('Restore', '恢复') : word('Delete', '删除'), file.working?.archived ? 'restore' : 'delete']]) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.addEventListener('click', () => void libraryAction(file, action)); menu.append(b); }

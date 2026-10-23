@@ -18,7 +18,7 @@ const titleOf = value => typeof value === 'string' ? value : value?.title || val
 const newId = () => `item_${crypto.randomUUID().replaceAll('-', '')}`;
 export class StructuredEditor extends DataEditor {
   constructor(options) {
-    super(options); this.saveRequested = options.saveRequested;
+    super(options);
     this.root.addEventListener?.('focusin', event => {
       const item = event.target.closest('[data-unit]');
       if (item) this.activate(JSON.parse(item.dataset.unit));
@@ -130,8 +130,9 @@ export class StructuredEditor extends DataEditor {
     window.scrollTo?.({ top: 0, behavior: 'smooth' });
   }
   card(root, scope, title, subtitle = '') {
-    const card = button('', () => this.select(scope), 'unit-card pub-card'); card.dataset.unit = scopeKey(scope);
-    card.append(node('h2', 'unit-title', title || this.text('untitled')), node('span', 'unit-meta', subtitle), node('span', 'unit-marker'), node('span', 'unit-arrow', '→'));
+    const card = button('', () => this.select(scope), 'unit-card data-navigation-row'); card.dataset.unit = scopeKey(scope);
+    const arrow = node('span', 'unit-arrow', '›'); arrow.setAttribute('aria-hidden', 'true');
+    card.append(node('span', 'unit-title', title || this.text('untitled')), node('span', 'unit-meta', subtitle), node('span', 'unit-marker'), arrow);
     root.append(card);
   }
   render() {
@@ -146,9 +147,7 @@ export class StructuredEditor extends DataEditor {
     const toolbar = node('div', 'card-toolbar'); this.root.append(toolbar);
     const list = node('div', 'unit-list card-list'); this.root.append(list);
     if (!scope) {
-      toolbar.append(button(this.text(this.kind === 'cv' ? 'addSection' : 'add'), () => this.perform(this.kind === 'cv' ? 'add-section' : 'add-entry')));
-      const more = node('details', 'card-options'), summary = node('summary', '', '···'); summary.setAttribute('aria-label', zh ? '全部操作' : 'All actions'); more.append(summary);
-      more.append(button(zh ? '导出全部' : 'Export all', () => this.export(true)), button(zh ? '重置全部' : 'Reset all', () => this.reset(true)), button(zh ? '保存全部' : 'Save all', () => this.saveRequested ? this.saveRequested(true) : this.publish(true).catch(() => {}))); toolbar.append(more);
+      toolbar.append(button(this.text(this.kind === 'cv' ? 'addSection' : 'add'), () => this.perform(this.kind === 'cv' ? 'add-section' : 'add-entry'), 'quiet add-control'));
       if (this.kind === 'cv') {
         for (const name of ['intro', 'pdf']) this.card(list, { type: 'field', key: name }, this.text(name));
         for (const group of new Set([...groupKeys(this.active.base), ...groupKeys(this.active.value)])) {
@@ -156,8 +155,6 @@ export class StructuredEditor extends DataEditor {
           this.card(list, { type: 'section', group }, value.title, String((entriesAt(this.kind, this.active.value, group) || []).length));
         }
       } else {
-        const input = node('input'); input.type = 'search'; input.id = 'data-search'; input.value = this.query || ''; input.placeholder = this.text('search'); input.setAttribute('aria-label', this.text('search'));
-        input.addEventListener('input', () => { this.query = input.value; this.filterRows(); }); toolbar.prepend(input);
         const union = new Map([...this.active.base, ...this.active.value].map(item => [item._id, item]));
         for (const item of union.values()) this.card(list, { type: 'entry', id: item._id }, titleOf(item), [item.year, item.status === 'journal' ? (zh ? '期刊' : 'Journal') : (zh ? '预印本' : 'Preprint'), item.authors, item.publisher].filter(Boolean).join(' · '));
       }
@@ -175,19 +172,10 @@ export class StructuredEditor extends DataEditor {
         for (const item of union.values()) this.card(entries, { type: 'entry', group: scope.group, id: item._id }, titleOf(item), item.date || item.date_start || item.location || '');
       } else if (scope.type === 'entry' && value) toolbar.append(button(zh ? '删除条目' : 'Delete entry', () => this.perform('remove-entry'), 'quiet danger'));
     }
-    this.markRows(); if (!scope) this.filterRows(); this.updateSelection(); this.backup();
+    if (!scope && this.kind === 'publications' && !list.childElementCount) list.append(node('p', 'unit-empty', this.text('empty')));
+    this.markRows(); this.updateSelection(); this.backup();
     this.setStatus(scope ? this.text(this.currentDirty() ? 'dirty' : 'clean') : '');
     if (this.conflict) this.renderConflict();
-  }
-  filterRows() {
-    if (this.kind !== 'publications') return;
-    for (const row of this.root.querySelectorAll('[data-unit]')) {
-      const scope = JSON.parse(row.dataset.unit), item = unitValue(this.kind, this.active.value, scope) || unitValue(this.kind, this.active.base, scope);
-      const selected = scopeKey(scope) === scopeKey(this.scope);
-      row.hidden = !selected && (!!this.query && ![item.title, item.authors, item.publisher, item.year].join(' ').toLocaleLowerCase().includes(this.query.trim().toLocaleLowerCase()));
-    }
-    this.root.querySelector('.unit-empty')?.remove();
-    if (![...this.root.querySelectorAll('.unit-card')].some(row => !row.hidden)) this.root.querySelector('.unit-list').append(node('p', 'unit-empty', this.text('empty')));
   }
   form(root, scope, title) {
     const form = node('div', 'unit-form'); form.setAttribute('aria-label', title); root.append(form);

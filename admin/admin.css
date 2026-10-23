@@ -388,34 +388,36 @@ body[data-view=data] main { padding-bottom: calc(96px + env(safe-area-inset-bott
 .inline-data-editor .unit-research > .unit-marker { padding: 0 12px; }
 .inline-data-editor .unit-research .unit-form { padding-block: 0 8px; }
 
-/* Hierarchical cards keep collection browsing separate from item editing. */
+/* Data rows retain the collection -> detail navigation and scoped save model. */
 .card-data-editor { padding: 8px 0 36px; }
-.card-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
+.card-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
 .card-toolbar > :last-child { margin-inline-start: auto; }
-.card-toolbar button, .card-options summary { font-weight: 700; min-height: 44px; border: 0; background: transparent; }
-.card-toolbar input { flex: 1 1 140px; min-width: 0; }
-.card-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; }
-.unit-card.pub-card { display: flex; position: relative; flex-direction: column; text-align: start; align-items: flex-start; padding: 24px; min-height: 140px; width: 100%; border: 0; border-radius: 12px; background: var(--entry, var(--surface)); color: var(--primary); box-shadow: 0 5px 20px #00000006; cursor: pointer; }
-.unit-card .unit-title { margin: 0 20px 12px 0; font-size: 18px; font-weight: 700; line-height: 1.6; overflow-wrap: anywhere; }
-.unit-card .unit-meta { font-size: 13px; color: var(--secondary); white-space: normal; }
-.unit-arrow { position: absolute; inset-inline-end: 20px; bottom: 18px; }
-.unit-card[data-dirty] { background: var(--code-bg); }
-.unit-card[data-dirty] .unit-marker { position: absolute; top: 12px; right: 16px; }
+.card-toolbar button { font-weight: 700; min-height: 44px; border: 0; background: transparent; }
+.card-toolbar .add-control { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 16px; color: var(--primary); transition: border-color .18s, background .18s; }
+.card-toolbar .add-control:is(:hover, :focus-visible) { border-color: var(--ink-accent); background: var(--ink-wash); }
+.card-list { display: flex; flex-direction: column; gap: 3px; }
+.data-navigation-row { display: grid; grid-template-columns: minmax(0, 1fr) auto 16px; column-gap: 12px; align-items: center; text-align: start; width: 100%; min-height: 66px; margin: 0; padding: 14px 12px; border: 0; border-radius: var(--radius); background: transparent; color: var(--primary); box-shadow: none; cursor: pointer; transition: background .18s; }
+.data-navigation-row:is(:hover, :focus-visible) { background: var(--ink-wash); }
+.data-navigation-row .unit-title { grid-column: 1; grid-row: 1; margin: 0; font-size: 16px; font-weight: 700; line-height: 1.65; overflow-wrap: anywhere; }
+.data-navigation-row .unit-meta { grid-column: 1; grid-row: 2; margin-top: 3px; font-size: 12px; line-height: 1.7; color: var(--secondary); white-space: normal; overflow-wrap: anywhere; }
+.data-navigation-row .unit-meta:empty { display: none; }
+.data-navigation-row .unit-marker { grid-column: 2; grid-row: 1 / span 2; color: var(--ink-accent); font-size: 12px; }
+.data-navigation-row .unit-arrow { grid-column: 3; grid-row: 1 / span 2; justify-self: end; color: var(--secondary); font-size: 24px; line-height: 1; }
+.data-navigation-row[data-dirty] { background: var(--ink-wash); }
 .unit-detail { grid-column: 1 / -1; min-width: 0; }
 .unit-detail > h2 { font-size: 21px; margin-bottom: 20px; overflow-wrap: anywhere; }
 .unit-detail .data-properties { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 18px; }
 .unit-detail .data-properties label { min-width: 0; }
 .unit-detail .data-properties label:has(textarea) { grid-column: 1 / -1; }
 .unit-detail .section-entries { margin-top: 24px; }
-.card-options, .article-options, .block-inserter { position: relative; }
-.card-options summary, .article-options summary, .block-inserter summary { list-style: none; cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; }
-.card-options summary::-webkit-details-marker, .article-options summary::-webkit-details-marker, .block-inserter summary::-webkit-details-marker { display: none; }
-.card-options[open], .article-options[open] { background: var(--theme); border-radius: 8px; }
-.card-options > button, .article-options > button { display: block; width: 100%; text-align: start; min-height: 44px; white-space: nowrap; border: 0; background: transparent; font-weight: 700; }
+.article-options, .block-inserter { position: relative; }
+.article-options summary, .block-inserter summary { list-style: none; cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 700; }
+.article-options summary::-webkit-details-marker, .block-inserter summary::-webkit-details-marker { display: none; }
+.article-options[open] { background: var(--theme); border-radius: 8px; }
+.article-options > button { display: block; width: 100%; text-align: start; min-height: 44px; white-space: nowrap; border: 0; background: transparent; font-weight: 700; }
 .article-options { margin-inline-start: auto; }
 .article-options > button { white-space: normal; }
 .article-options[open] { flex: 1; padding: 0 8px; }
-.card-options[open] { padding: 0 12px; }
 #cv-tools { display: none !important; }
 body[data-view="data"] .workspace-header { display: none; }
 body[data-view="data"] main { padding-top: 14px; }
@@ -455,8 +457,7 @@ body[data-focus="true"] .editor-footer { opacity: .55; }
 body[data-focus="true"] .editor-footer:focus-within, body[data-focus="true"] .editor-footer:hover { opacity: 1; }
 :focus-visible { outline: 2px solid var(--secondary); outline-offset: 4px; }
 @media (max-width: 600px) {
-  .card-list { grid-template-columns: 1fr; gap: 12px; }
-  .unit-card.pub-card { padding: 20px; min-height: 120px; }
+  .data-navigation-row { padding: 13px 8px; column-gap: 8px; }
   .unit-detail .data-properties { grid-template-columns: 1fr; }
   .writing-block { padding: 8px 4px; }
   .block-editor { font-size: 16px; }
@@ -478,7 +479,6 @@ body[data-focus="true"] #editor-view.editor-shell { top: 0; height: calc(100dvh 
 }
 .block-display math { font-size: 1.1em; }
 .block-display math[display="block"] { display: block; margin-block: 1em; overflow-x: auto; }
-.unit-card .unit-title { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .card-data-editor > .card-toolbar { padding-inline-end: 38px; }
 .unit-detail .data-properties textarea { min-height: 72px; }
 .inline-format-tools { display: flex; gap: 8px; justify-content: flex-end; }
